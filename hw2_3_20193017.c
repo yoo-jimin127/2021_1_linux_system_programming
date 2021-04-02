@@ -10,12 +10,16 @@
 #define MAX_SIZE 999
 
 int main (int argc, char* argv[]) {
-	int iter_num = 0;
-	int rand_fd;
-	int sort_fd;
-	char filename[30] = "rand_test.txt";
-	char sorted_filename[30] = "sorted_test.txt";
-	int rand_num = 0;
+	int iter_num = 0; //정수(난수 생성 개수) 저장 변수
+	int rand_fd; //정렬X 난수 저장 파일 디스크립터
+	int rand_filesize = 0;
+	int sort_fd; //정렬O 난수 저장 파일 디스크립터
+	char filename[30] = "rand_test.txt"; //정렬X 난수 저장 파일
+	char sorted_filename[30] = "sorted_test.txt"; //정렬O 난수 저장 파일
+	
+	int rand_int = 0; //생성되는 난수 저장 변수
+	char rand_str[5]; //sprintf() 사용을 위한 배열
+	char buf[MAX_SIZE]; //난수를 읽어와 저장하는 배열
 	
 	if (argc < 2) {
 		fprintf(stderr, "usage : ./hw2_3_20193017 <iter_num>\n");
@@ -23,8 +27,6 @@ int main (int argc, char* argv[]) {
 	}
 
 	iter_num = atoi(argv[1]);
-	int *rand_arr = malloc(sizeof(int) * iter_num);
-	//memset(rand_arr, 0, iter_num);
 
 	if ((rand_fd = creat(filename, 0666)) < 0) { //읽기 모드로 파일이 생성되고 열림
 		fprintf(stderr, "<filename> creat() error\n");
@@ -33,20 +35,27 @@ int main (int argc, char* argv[]) {
 
 	srand(time(NULL)); //난수의 중복 방지
 	for (int i = 0; i < iter_num; i++) {
-		rand_num = rand() % iter_num;
-		printf("rand_num : %d\n", rand_num);
-		write(rand_fd, &rand_num, sizeof(int));
-		//printf("success : %d\n", success);
+		rand_int = rand() % iter_num;
+		printf("%d\n", rand_int);
+		sprintf(rand_str, "%d\n", rand_int);
+		write(rand_fd, rand_str, sizeof(rand_str));
+		memset(rand_str, 0, 5);
 	}
-
-	//write(rand_arr, sizeof(int), iter_num, fptr);
+	
+	rand_filesize = lseek(rand_fd, (off_t)0, SEEK_END); //파일 크기 저장
+	read(rand_fd, buf, rand_filesize); //버퍼에 정렬되지 않은 난수들 저장
 	close(rand_fd);
+	
+	//printf("%s", buf);
 
 	if ((sort_fd = creat(sorted_filename, 0666)) < 0) {
 		fprintf(stderr, "<sorted_filename> fopen() error\n");
 		exit(1);
 	}
 
+
 	close(sort_fd);
 	return 0;
 }
+
+
