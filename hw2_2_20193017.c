@@ -11,7 +11,8 @@
 int main (int argc, char * argv[]) {
 	char *filename; //입력으로 주어지는 텍스트 파일명
 	char *new_filename; //대소문자를 바꾸어 새롭게 생성하는 파일명
-	FILE *fptr = NULL; //파일포인터
+	int fd1; //바꾸기 전 파일 디스크립터
+	int fd2; //바꾼 후 파일 디스크립터
 	int filesize = 0; //파일 사이즈 저장 변수
 	char buf[MAX_SIZE]; //파일 내용 저장 버퍼
 
@@ -25,17 +26,17 @@ int main (int argc, char * argv[]) {
 
 	memset(buf, 0, MAX_SIZE); //버퍼 초기화
 
-	if ((fptr = fopen(filename, "r")) == NULL) { //입력으로 주어지는 텍스트파일 읽기 모드로 오픈
-		fprintf(stderr, "<filename> fopen() error\n");
+	if ((fd1 = open(filename, O_RDONLY)) < 0) { //입력으로 주어지는 텍스트파일 읽기 모드로 오픈
+		fprintf(stderr, "<filename> open() error\n");
 		exit(1);
 	}
 
-	fseek(fptr, 0, SEEK_END); //파일 포인터를 SEEK_END로 옮겨 파일의 사이즈를 알아냄
-	filesize = (int)(ftell(fptr));
+	filesize = lseek(fd1, 0, SEEK_END); //파일 포인터를 SEEK_END로 옮겨 파일의 사이즈를 알아냄
+	//filesize = (int)(ftell(fptr));
 
-	fseek(fptr, 0, SEEK_SET); //파일 포인터 텍스트파일의 시작부분으로 옮김
-	fread(buf, 1, filesize, fptr); //파일의 내용을 읽어 버퍼에 저장
-	fclose(fptr); //입력으로 주어진 텍스트 파일 닫기
+	lseek(fd1, 0, SEEK_SET); //파일 포인터 텍스트파일의 시작부분으로 옮김
+	read(fd1, buf, filesize); //파일의 내용을 읽어 버퍼에 저장
+	close(fd1); //입력으로 주어진 텍스트 파일 닫기
 
 	for (int i = 0; i < strlen(filename); i++) { // 파일명의 대 -> 소, 소 -> 대
 		if ((filename[i] >= 'a') && (filename[i] <= 'z')) { //소문자일 경우
@@ -57,12 +58,12 @@ int main (int argc, char * argv[]) {
 		}
 	}
 
-	if ((fptr = fopen(new_filename, "w")) == NULL) { //대소문자가 바뀐 new_filename 쓰기모드로 오픈
-		fprintf(stderr, "<new_filename> fopen() error\n");
+	if ((fd2 = creat(new_filename, 0666)) < 0) { //대소문자가 바뀐 new_filename의 파일을 생성하고 쓰기모드로 오픈
+		fprintf(stderr, "<new_filename> creat() error\n");
 		exit(1);
 	}
 	
-	fwrite(buf, 1, filesize, fptr); //대소문자가 변경되어 저장된 버퍼의 내용을 파일에 씀
-	fclose(fptr); //파일 닫기
+	write(fd2, buf, filesize); //대소문자가 변경되어 저장된 버퍼의 내용을 파일에 씀
+	close(fd2); //파일 닫기
 	return 0;
 }

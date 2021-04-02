@@ -7,20 +7,20 @@
 #include <fcntl.h>
 
 int main (int argc, char * argv[]) {
-	char *filename;
-	FILE *fptr = NULL;
-	int iter_num = 0;
-	char symbol[1] = "";
-	char enter[1] = "\n";
+	char *filename; //파일명
+	int fd; //파일 디스크립터
+	int iter_num = 0; //정수 값
+	char symbol[1] = ""; //기호 값
+	char enter[1] = "\n"; //
 
 	if (argc < 4) {
 		fprintf(stderr, "usage : ./hw2_1_20193017 <iter_num> <symbol> <filename>\n");
 		exit(1);
 	}
 
-	for (int i = 0; i < argc; i++) {
-		printf("argv[%d] : %s\n", i, argv[i]);
-	}
+	//for (int i = 0; i < argc; i++) {
+	//	printf("argv[%d] : %s\n", i, argv[i]);
+	//}
 
 	filename = (char *)malloc(sizeof(char) * 100);
 
@@ -28,7 +28,7 @@ int main (int argc, char * argv[]) {
 	strcpy(symbol, argv[2]);
 	strcpy(filename, argv[3]);
 
-	if ((fptr = fopen(filename, "w")) == NULL) {
+	if () {
 		fprintf(stderr, "<filename> fopen() error\n");
 		exit(1);
 	}

@@ -11,7 +11,8 @@
 
 int main (int argc, char* argv[]) {
 	int iter_num = 0;
-	FILE *fptr = NULL;
+	int rand_fd;
+	int sort_fd;
 	char filename[30] = "rand_test.txt";
 	char sorted_filename[30] = "sorted_test.txt";
 	int rand_num = 0;
@@ -22,25 +23,30 @@ int main (int argc, char* argv[]) {
 	}
 
 	iter_num = atoi(argv[1]);
+	int *rand_arr = malloc(sizeof(int) * iter_num);
+	//memset(rand_arr, 0, iter_num);
 
-	if ((fptr = fopen(filename, "wt")) == NULL) {
-		fprintf(stderr, "<filename> fopen() error\n");
+	if ((rand_fd = creat(filename, 0666)) < 0) { //읽기 모드로 파일이 생성되고 열림
+		fprintf(stderr, "<filename> creat() error\n");
 		exit(1);
 	}
 
 	srand(time(NULL)); //난수의 중복 방지
 	for (int i = 0; i < iter_num; i++) {
 		rand_num = rand() % iter_num;
-		fwrite(&rand_num, sizeof(int), 1, fptr);
+		printf("rand_num : %d\n", rand_num);
+		write(rand_fd, &rand_num, sizeof(int));
+		//printf("success : %d\n", success);
 	}
 
-	fclose(fptr);
+	//write(rand_arr, sizeof(int), iter_num, fptr);
+	close(rand_fd);
 
-	if ((fptr = fopen(sorted_filename, "wt")) == NULL) {
+	if ((sort_fd = creat(sorted_filename, 0666)) < 0) {
 		fprintf(stderr, "<sorted_filename> fopen() error\n");
 		exit(1);
 	}
 
-	fclose(fptr);
+	close(fd2);
 	return 0;
 }
