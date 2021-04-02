@@ -11,6 +11,11 @@ int main (int argc, char* argv[]) {
 	char *filename;
 	int fd;
 	char enter[10] = "\n";
+	
+	printf("argc : %d\n", argc);
+	for (int i = 0; i < argc; i++) {
+		printf("argv[%d] : %s\n", i, argv[i]);
+	}
 
 	symbol = (char *)malloc(sizeof(char) * 10);
 	filename = (char *)malloc(sizeof(char) * 100);
@@ -22,7 +27,7 @@ int main (int argc, char* argv[]) {
 	strcpy(symbol, argv[2]);
 	strcpy(filename, argv[3]);
 
-	if ((fd = open(filename, 0666)) < 0) {
+	if ((fd = creat(filename, 0666)) < 0) {
 		fprintf(stderr, "filename open() error\n");
 		exit(1);
 	}
