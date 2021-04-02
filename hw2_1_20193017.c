@@ -28,18 +28,18 @@ int main (int argc, char * argv[]) {
 	strcpy(symbol, argv[2]);
 	strcpy(filename, argv[3]);
 
-	if () {
-		fprintf(stderr, "<filename> fopen() error\n");
+	if ((fd = creat(filename, 0666)) < 0)  {
+		fprintf(stderr, "<filename> creat() error\n");
 		exit(1);
 	}
 
 	if (iter_num > 0) {
 		for (int i = 1; i <= iter_num; i++) {
 			for (int j = 1; j <= i; j++) {
-				fwrite(symbol, 1, 1, fptr);
+				write(fd, symbol, sizeof(symbol));
 				//printf("*");
 			}
-			fwrite(enter, 1, 1, fptr);
+			write(fd, enter, sizeof(enter));
 			//printf("\n");
 		}
 	}
@@ -47,15 +47,15 @@ int main (int argc, char * argv[]) {
 	else if (iter_num < 0) {
 		for (int i = 1; i <= ( (-1) * iter_num); i++) {
 			for (int j = ( (-1) * iter_num); j >= i; j--) {
-				fwrite(symbol, 1, 1, fptr);
+				write(fd, symbol, sizeof(symbol));
 				//printf("#");
 			}
-			fwrite(enter, 1, 1, fptr);
+			write(fd, enter, sizeof(enter));
 			//printf("\n");
 		}
 	}
 
-	fclose(fptr);
+	close(fd);
 
 	return 0;
 }
