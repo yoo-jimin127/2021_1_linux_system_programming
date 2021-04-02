@@ -17,30 +17,36 @@ int main (int argc, char * argv[]) {
 		fprintf(stderr, "usage : ./hw2_1_20193017 <iter_num> <symbol> <filename>\n");
 		exit(1);
 	}
+	
+	printf("argc : %d\n", argc);
 
-	//for (int i = 0; i < argc; i++) {
-	//	printf("argv[%d] : %s\n", i, argv[i]);
-	//}
+	for (int i = 0; i < argc; i++) {
+		printf("argv[%d] : %s\n", i, argv[i]);
+	}
 
 	filename = (char *)malloc(sizeof(char) * 100);
 
 	iter_num = atoi(argv[1]);
 	strcpy(symbol, argv[2]);
 	strcpy(filename, argv[3]);
+	
+	printf("1\n");
 
 	if ((fd = creat(filename, 0666)) < 0)  {
 		fprintf(stderr, "<filename> creat() error\n");
 		exit(1);
 	}
 
+	printf("2\n");
+
 	if (iter_num > 0) {
 		for (int i = 1; i <= iter_num; i++) {
 			for (int j = 1; j <= i; j++) {
 				write(fd, symbol, sizeof(symbol));
-				//printf("*");
+				printf("*");
 			}
 			write(fd, enter, sizeof(enter));
-			//printf("\n");
+			printf("\n");
 		}
 	}
 
@@ -48,10 +54,10 @@ int main (int argc, char * argv[]) {
 		for (int i = 1; i <= ( (-1) * iter_num); i++) {
 			for (int j = ( (-1) * iter_num); j >= i; j--) {
 				write(fd, symbol, sizeof(symbol));
-				//printf("#");
+				printf("#");
 			}
 			write(fd, enter, sizeof(enter));
-			//printf("\n");
+			printf("\n");
 		}
 	}
 
