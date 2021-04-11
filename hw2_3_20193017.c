@@ -18,8 +18,8 @@ int main (int argc, char* argv[]) {
 	char sorted_filename[30] = "sorted_test.txt"; //정렬O 난수 저장 파일
 	
 	int rand_int = 0; //생성되는 난수 저장 변수
-	char rand_str[5]; //sprintf() 사용을 위한 배열(난수)
-	char sort_str[5]; //sprintf() 사용을 위한 배열(정렬된 난수)
+	char rand_str[10]; //sprintf() 사용을 위한 배열(난수)
+	char sort_str[10]; //sprintf() 사용을 위한 배열(정렬된 난수)
 	char buf[MAX_SIZE]; //난수를 읽어와 저장하는 배열
 	int rand_arr[MAX_SIZE]; //정렬할 난수를 int형으로 저장할 배열
 	int tok_cnt = 0; //토큰 개수 카운터
@@ -42,7 +42,7 @@ int main (int argc, char* argv[]) {
 		sprintf(rand_str, "%d", rand_int); //정수를 문자열로 변환하기 위해 사용되는 임시 버퍼
 		write(rand_fd, rand_str, strlen(rand_str)); //rand_test.txt에 씀
 		write(rand_fd, "\n", sizeof(char)); //난수 간의 구분자를 개행문자로 하여 출력
-		memset(rand_str, 0, 5); //임시 버퍼인 문자열 초기화
+		memset(rand_str, 0, 10); //임시 버퍼인 문자열 초기화
 	}
 	
 	rand_filesize = lseek(rand_fd, 0, SEEK_END); //파일 크기 저장
@@ -76,7 +76,7 @@ int main (int argc, char* argv[]) {
 		sprintf(sort_str, "%d", rand_arr[i]);
 		write(sort_fd, sort_str, strlen(sort_str));
 		write(sort_fd, "\n", sizeof(char));
-		memset(sort_str, 0, 5);
+		memset(sort_str, 0, 10);
 	}
 
 	close(sort_fd); //파일 닫기
