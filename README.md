@@ -7,3 +7,4 @@
 
 * chmod 명령어 구현 참고 자료 : https://kldp.org/node/160519
 * https://ehpub.co.kr/%EB%A6%AC%EB%88%85%EC%8A%A4-%EC%8B%9C%EC%8A%A4%ED%85%9C-%ED%94%84%EB%A1%9C%EA%B7%B8%EB%9E%98%EB%B0%8D-4-3-chmod-fchmod/
+* https://devanix.tistory.com/287
