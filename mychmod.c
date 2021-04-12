@@ -4,11 +4,13 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
-#include <sys/type.h>
+#include <sys/types.h>
 #include <dirent.h>
 #include <pwd.h>
 #include <grp.h>
 #include <time.h>
+
+#define MAX_SIZE 1024
 
 char type(mode_t);
 char* perm(mode_t);
@@ -16,8 +18,11 @@ char* perm(mode_t);
 int main (int argc, char* argv[]) {	
 	char *filename;
 	int file_perm = 0;
+	struct stat statbuf;
+	DIR *dirptr = NULL;
+	struct dirent *entry;
 
-	if (argc < 3) {
+	if (argc != 3) {
 		fprintf(stderr, "Usage : %s <filename> <permission>\n", argv[0]);
 		exit(1);
 	}
@@ -27,6 +32,25 @@ int main (int argc, char* argv[]) {
 
 	strcpy(filename, argv[1]);
 	file_perm = atoi(argv[2]);
+
+	if (access(filename, F_OK) < 0) { // access() 함수 사용해 파일 존재 여부 확인
+		fprintf(stderr, "<filename> doesn't exist.\n");
+		exit(1);
+	}
+
+	if (lstat(filename, &statbuf) < 0) {
+		fprintf(stderr, "<filename> stat error\n");
+		exit(1);
+	}
+
+	if (chmod(filename, file_perm) < 0) {
+		fprintf(stderr, "<filename> chmod error\n");
+		exit(1);
+	}
+
+	else {
+		printf("<%s> success change mode\n", filename);
+	}
 
 	return 0;
 }
