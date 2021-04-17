@@ -46,8 +46,8 @@ int main (int argc, char* argv[]) {
 		exit(1);
 	}
 
-	timebuf.actime = statbuf.st_atime;
-	timebuf.modtime = statbuf.st_mtime;
+	timebuf.actime = statbuf.st_atime; //timebuf.actime에 값 저장
+	timebuf.modtime = statbuf.st_mtime; //timebuf.modtime에 값 저장
 
 	if (utime(filename, NULL) < 0) {
 		fprintf(stderr, "<%s> utime() error\n", filename);

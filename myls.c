@@ -27,24 +27,24 @@ int main (int argc, char* argv[]) {
 	char *dir;
 	char path[MAX_SIZE];
 
-	//=========================<< argc == 1 "myls" 명령어 구현부>>===========================
+//=========================<< argc == 1 "myls" 명령어 구현부>>===========================
 
 	if (argc == 1) { //옵션과 파일명 없이 myls 명령어만 입력했을 경우
 		dir = "."; //현재 디렉토리로 설정
-		if ((dirptr = opendir(dir)) == NULL) {
+		if ((dirptr = opendir(dir)) == NULL) { //opendir() 및 예외처리
 			fprintf(stderr, "<dir> opendir() error\n");
 			exit(1);
 		}
 
-		int print_cnt = 0;
+		int print_cnt = 0; //ui대로 출력하기 위한 printf() 카운터 변수
 
-		while ((entry = readdir(dirptr)) != NULL) {
-			if (!strcmp(entry -> d_name, ".") || !strcmp(entry -> d_name, "..")) {
+		while ((entry = readdir(dirptr)) != NULL) { //readdir() 을 통하여 디렉토리 내의 파일 순회
+			if (!strcmp(entry -> d_name, ".") || !strcmp(entry -> d_name, "..")) { // . 과 ..이 나올 경우 계속 진행
 				continue;
 			}
 
 			else {
-				printf("%-20s\t", entry -> d_name);
+				printf("%-20s\t", entry -> d_name); //entry -> d_name출력
 				print_cnt++;
 
 				if (print_cnt % 6 == 5) {
@@ -54,7 +54,7 @@ int main (int argc, char* argv[]) {
 		}
 
 		printf("\n");
-		closedir(dirptr);
+		closedir(dirptr); //디렉토리 포인터 close
 	}
 
 	//=========================<< argc == 2 "myls <option> 명령어 구현부 >>=======================
@@ -111,12 +111,12 @@ int main (int argc, char* argv[]) {
 						exit(1);
 					}
 
-					printf("%c%s ", type(statbuf.st_mode), perm(statbuf.st_mode));
-					printf("%ld ", statbuf.st_nlink);
-					printf("%s %s ", getpwuid(statbuf.st_uid) -> pw_name, getgrgid(statbuf.st_gid) -> gr_name);
-					printf("%6ld ", statbuf.st_size);
-					printf("%.12s ", ctime(&statbuf.st_mtime) + 4);
-					printf("%s\n", entry -> d_name);
+					printf("%c%s ", type(statbuf.st_mode), perm(statbuf.st_mode)); //해당 파일의 권한 출력
+					printf("%ld ", statbuf.st_nlink); //해당 파일의 링크 출력
+					printf("%s %s ", getpwuid(statbuf.st_uid) -> pw_name, getgrgid(statbuf.st_gid) -> gr_name); //uid와 gid출력
+					printf("%6ld ", statbuf.st_size); //해당 파일의 사이즈 출력
+					printf("%.12s ", ctime(&statbuf.st_mtime) + 4); //해당 파일의 최종 수정 시간 출력
+					printf("%s\n", entry -> d_name); //해당 파일의 파일명 출력
 				}
 			}
 
@@ -125,9 +125,9 @@ int main (int argc, char* argv[]) {
 
 		else if (strcmp(argv[1], "-t") == 0) { //myls -t
 			int file_cnt = 0; //파일 구조체 개수
-			struct File_info file_table[512];
+			struct File_info file_table[512]; //디렉토리를 순회하며 파일명과 st_mtime을 저장하기 위한 구조체 배열
 
-			dir = ".";
+			dir = "."; //인자가 없는 경우 현재 디렉토리를 dir로 설정
 
 			if ((dirptr = opendir(dir)) == NULL) {
 				fprintf(stderr, "<dir> opendir() error\n");
@@ -145,15 +145,15 @@ int main (int argc, char* argv[]) {
 						exit(1);
 					}
 
-					strcpy(file_table[file_cnt].filename, entry -> d_name);
-					file_table[file_cnt].file_time = statbuf.st_mtime;
+					strcpy(file_table[file_cnt].filename, entry -> d_name); //구조체 변수의 filename에 strcpy
+					file_table[file_cnt].file_time = statbuf.st_mtime; //시간 저장
 
 					file_cnt++;
 				}
 
-				struct File_info tmp;
+				struct File_info tmp; //구조체 변수를 임시로 저장하기 위한 구조체 변수
 				for (int i = 0; i <= file_cnt; i++) {
-					for (int j = 0; j < file_cnt - (i + 1); j++) {
+					for (int j = 0; j < file_cnt - (i + 1); j++) { //버블정렬 진행
 						if (file_table[j].file_time > file_table[j+1].file_time) {
 							tmp = file_table[j+1];
 							file_table[j+1] = file_table[j];
@@ -171,7 +171,7 @@ int main (int argc, char* argv[]) {
 			closedir(dirptr);
 		}
 
-		//======================<< argc == 2 "myls <filename> 명령어 구현부 >>======================
+//=================<< argc == 2 "myls <filename> 명령어 구현부 >>=======================
 
 		else if (strncmp(argv[1], "-", 1) != 0) { // <myls file_name> or <myls directory_name>
 			dir = argv[1]; //인자로 입력받은 <filename> or <directory name>을 경로로 지정
@@ -213,7 +213,7 @@ int main (int argc, char* argv[]) {
 		}
 	}
 
-	//==============<< argc == 3 "myls <filename or dirname> <option> 명령어 구현부 >>==============
+//==============<< argc == 3 "myls <filename or dirname> <option> 명령어 구현부 >>==============
 
 	else if (argc == 3) { // myls <filename or directory_name> <option> 의 실행 인자 주어진 경우
 		dir = argv[2];
@@ -278,7 +278,7 @@ int main (int argc, char* argv[]) {
 					if (!strcmp(entry -> d_name, ".") || !strcmp(entry -> d_name, "..")) {
 						continue;
 					}
-					
+
 					printf("%c%s ", type(statbuf.st_mode), perm(statbuf.st_mode));
 					printf("%ld ", statbuf.st_nlink);
 					printf("%s %s ", getpwuid(statbuf.st_uid) -> pw_name, getgrgid(statbuf.st_gid) -> gr_name);
@@ -306,7 +306,7 @@ int main (int argc, char* argv[]) {
 		else if (strcmp(argv[1], "-t") == 0) { //myls <filename or dirname> -t
 			int file_cnt = 0; //파일 구조체 갸수
 			struct File_info file_table[512];
-	
+
 			if ((dirptr = opendir(dir)) == NULL) {
 				fprintf(stderr, "<dir> opendir() error\n");
 				exit(1);

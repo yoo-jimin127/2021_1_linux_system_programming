@@ -16,14 +16,14 @@ char type(mode_t);
 char* perm(mode_t);
 
 int main (int argc, char* argv[]) {	
-	char *filename;
-	int file_perm[4] = { 0, };
-	char *file_perm_str;
-	struct stat statbuf;
-	DIR *dirptr = NULL;
-	struct dirent *entry;
+	char *filename; //파일명 저장 변수
+	int file_perm[4] = { 0, }; //파일 권한 저장 배열
+	char *file_perm_str; //문자열로 지정된 파일 권한 저장 배열
+	struct stat statbuf; //stat 구조체
+	DIR *dirptr = NULL; //dirent 포인터
+	struct dirent *entry; //dirent 구조체
 
-	if (argc != 3) {
+	if (argc != 3) { //실행 인자를 잘못 입력하였을 경우
 		fprintf(stderr, "Usage : %s <filename> <permission>\n", argv[0]);
 		exit(1);
 	}
@@ -32,15 +32,15 @@ int main (int argc, char* argv[]) {
 	file_perm_str = (char *)malloc(sizeof (char) * 50);
 	memset(filename, 0, 512);
 
-	strcpy(filename, argv[1]);
-	strcpy(file_perm_str, argv[2]);
+	strcpy(filename, argv[1]); //filename 저장
+	strcpy(file_perm_str, argv[2]); //file_perm_str 저장
 	
-	for (int i = 0; i < 4; i++) {
+	for (int i = 0; i < 4; i++) { //파일 권한을 int형 배열에 저장하기 위해 아스키코드 연산 수행
 		file_perm[i] = file_perm_str[i] - '0';
 	}
 
-	mode_t mode;
-	mode = file_perm[3];
+	mode_t mode; //mode 변수 선언
+	mode = file_perm[3]; //mode_t의 비트마스크 연산 진행
 	mode = mode | (file_perm[2] << 3);
 	mode = mode | (file_perm[1] << 6);
 	mode = mode | (file_perm[0] << 9);
@@ -50,17 +50,12 @@ int main (int argc, char* argv[]) {
 		exit(1);
 	}
 	
-	if (lstat(filename, &statbuf) < 0) {
+	if (lstat(filename, &statbuf) < 0) { // lstat()을 통해 파일의 정보 얻어옴
 		fprintf(stderr, "lstat() error\n");
 		exit(1);
 	}
 
-	if (lstat(filename, &statbuf) < 0) {
-		fprintf(stderr, "<filename> stat error\n");
-		exit(1);
-	}
-
-	if (chmod(filename, mode) < 0) {
+	if (chmod(filename, mode) < 0) { // chmod() 진행
 		fprintf(stderr, "<filename> chmod error\n");
 		exit(1);
 	}
