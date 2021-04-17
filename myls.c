@@ -13,9 +13,12 @@
 #define MAX_SIZE 1024
 
 char type(mode_t);
-char* perm(mode_t);
-void getMtime(struct stat*, char*);
-void sortByMtime(char *);
+char* perm(mode_t); 
+
+struct File_info { //파일명과 시간 저장을 위한 구조체
+	char filename[50]; //파일명
+	time_t file_time; //시간
+};
 
 int main (int argc, char* argv[]) {
 	DIR *dirptr = NULL; //dirent 포인터
@@ -24,7 +27,7 @@ int main (int argc, char* argv[]) {
 	char *dir;
 	char path[MAX_SIZE];
 
-//=========================<< argc == 1 "myls" 명령어 구현부>>===========================
+	//=========================<< argc == 1 "myls" 명령어 구현부>>===========================
 
 	if (argc == 1) { //옵션과 파일명 없이 myls 명령어만 입력했을 경우
 		dir = "."; //현재 디렉토리로 설정
@@ -34,7 +37,7 @@ int main (int argc, char* argv[]) {
 		}
 
 		int print_cnt = 0;
-		
+
 		while ((entry = readdir(dirptr)) != NULL) {
 			if (!strcmp(entry -> d_name, ".") || !strcmp(entry -> d_name, "..")) {
 				continue;
@@ -54,7 +57,7 @@ int main (int argc, char* argv[]) {
 		closedir(dirptr);
 	}
 
-//=========================<< argc == 2 "myls <option> 명령어 구현부 >>=======================
+	//=========================<< argc == 2 "myls <option> 명령어 구현부 >>=======================
 
 	else if (argc == 2) { //인자가 2개 입력된 경우
 		if (strcmp(argv[1], "-i") == 0) { // myls -i
@@ -73,7 +76,7 @@ int main (int argc, char* argv[]) {
 				else {
 					printf("%ld %-20s\t", entry -> d_ino, entry -> d_name);
 					print_cnt++;
-					
+
 					if (print_cnt % 6 == 5) {
 						printf("\n");
 					}
@@ -108,24 +111,24 @@ int main (int argc, char* argv[]) {
 						exit(1);
 					}
 
-					printf("%5ld ", statbuf.st_blocks);
 					printf("%c%s ", type(statbuf.st_mode), perm(statbuf.st_mode));
-					printf("%3ld ", statbuf.st_nlink);
+					printf("%ld ", statbuf.st_nlink);
 					printf("%s %s ", getpwuid(statbuf.st_uid) -> pw_name, getgrgid(statbuf.st_gid) -> gr_name);
-					printf("%9ld ", statbuf.st_size);
+					printf("%6ld ", statbuf.st_size);
 					printf("%.12s ", ctime(&statbuf.st_mtime) + 4);
 					printf("%s\n", entry -> d_name);
 				}
 			}
-			
+
 			closedir(dirptr);
 		}
 
 		else if (strcmp(argv[1], "-t") == 0) { //myls -t
-			//char buf[MAX_SIZE] = "";
-			//struct tm *mtime;
+			int file_cnt = 0; //파일 구조체 개수
+			struct File_info file_table[512];
 
 			dir = ".";
+
 			if ((dirptr = opendir(dir)) == NULL) {
 				fprintf(stderr, "<dir> opendir() error\n");
 				exit(1);
@@ -137,114 +140,173 @@ int main (int argc, char* argv[]) {
 				}
 
 				else {
-					sprintf(path, "%s/%s", dir, entry -> d_name);
-					if (lstat(path, &statbuf) < 0) {
-						fprintf(stderr, "<path> lstat{} error\n");
+					if (lstat(entry -> d_name, &statbuf) < 0) {
+						fprintf(stderr, "lstat() error\n");
 						exit(1);
 					}
-					
-					//int cnt = 0;
-					//buf[cnt] = sortByMtime(&statbuf, entry -> d_name);
+
+					strcpy(file_table[file_cnt].filename, entry -> d_name);
+					file_table[file_cnt].file_time = statbuf.st_mtime;
+
+					file_cnt++;
+				}
+
+				struct File_info tmp;
+				for (int i = 0; i <= file_cnt; i++) {
+					for (int j = 0; j < file_cnt - (i + 1); j++) {
+						if (file_table[j].file_time > file_table[j+1].file_time) {
+							tmp = file_table[j+1];
+							file_table[j+1] = file_table[j];
+							file_table[j] = tmp;
+						}
+					}
 				}
 			}
+
+			for (int i = file_cnt; i >= 0; i--) {
+				printf("%s  ", file_table[i].filename);
+			}
+			printf("\n");
 
 			closedir(dirptr);
 		}
 
-//======================<< argc == 2 "myls <filename> 명령어 구현부 >>======================
+		//======================<< argc == 2 "myls <filename> 명령어 구현부 >>======================
 
 		else if (strncmp(argv[1], "-", 1) != 0) { // <myls file_name> or <myls directory_name>
 			dir = argv[1]; //인자로 입력받은 <filename> or <directory name>을 경로로 지정
-			if ((dirptr = opendir(dir)) == NULL) {
-				fprintf(stderr, "<dir> opendir() error\n");
+
+			if(lstat(dir, &statbuf) < 0) {
+				fprintf(stderr, "lstat() error\n");
 				exit(1);
 			}
 
-			int print_cnt = 0;
-			while ((entry = readdir(dirptr)) != NULL) {
-				if (!strcmp(entry -> d_name, ".") || !strcmp(entry -> d_name, "..")) {
-					continue;
+			if (S_ISDIR(statbuf.st_mode)) { //디렉토리 파일일 경우
+				if ((dirptr = opendir(dir)) == NULL) {
+					fprintf(stderr, "<dir> opendir() error\n");
+					exit(1);
 				}
 
-				else {
-					printf("%-20s\t", entry -> d_name);
-					print_cnt++;
+				int print_cnt = 0;
+				while ((entry = readdir(dirptr)) != NULL) {
+					if (!strcmp(entry -> d_name, ".") || !strcmp(entry -> d_name, "..")) {
+						continue;
+					}
 
-					if (print_cnt % 6 == 5) {
-						printf("\n");
+					else {
+						printf("%-20s\t", entry -> d_name);
+						print_cnt++;
+
+						if (print_cnt % 6 == 5) {
+							printf("\n");
+						}
 					}
 				}
+
+				printf("\n");
+				closedir(dirptr);
 			}
 
-			printf("\n");
-			closedir(dirptr);
+			else if (S_ISREG(statbuf.st_mode)) { //일반 파일일 경우
+				printf("%s\n", dir);
+			}
 		}
 	}
 
-//==============<< argc == 3 "myls <filename or dirname> <option> 명령어 구현부 >>==============
+	//==============<< argc == 3 "myls <filename or dirname> <option> 명령어 구현부 >>==============
 
 	else if (argc == 3) { // myls <filename or directory_name> <option> 의 실행 인자 주어진 경우
-		dir = argv[1];
+		dir = argv[2];
 
-		if (strcmp(argv[2], "-i") == 0) { //myls <filename or dirname> -i
-			if ((dirptr = opendir(dir)) == NULL) {
-				fprintf(stderr, "<dir> opendir() error\n");
+		if (strcmp(argv[1], "-i") == 0) { //myls <filename or dirname> -i
+			if (lstat(dir, &statbuf) < 0) {
+				fprintf(stderr, "lstat() error\n");
 				exit(1);
 			}
 
-			int print_cnt_i = 0;
-
-			while ((entry = readdir(dirptr)) != NULL) {
-				if (!strcmp(entry -> d_name, ".") || !strcmp(entry -> d_name, "..")) {
-					continue;
+			if (S_ISDIR(statbuf.st_mode)) {
+				if ((dirptr = opendir(dir)) == NULL) {
+					fprintf(stderr, "<dir> opendir() error\n");
+					exit(1);
 				}
 
-				else {
-					printf("%ld %-20s\t", entry -> d_ino, entry -> d_name);
-					print_cnt_i++;
+				int print_cnt_i = 0;
 
-					if (print_cnt_i % 5 == 4) {
-						printf("\n");
+				while ((entry = readdir(dirptr)) != NULL) {
+					if (!strcmp(entry -> d_name, ".") || !strcmp(entry -> d_name, "..")) {
+						continue;
+					}
+
+					else {
+						printf("%ld %-20s\t", entry -> d_ino, entry -> d_name);
+						print_cnt_i++;
+
+						if (print_cnt_i % 5 == 4) {
+							printf("\n");
+						}
 					}
 				}
+
+				printf("\n");
+				closedir(dirptr);
 			}
 
-			printf("\n");
-			closedir(dirptr);
+			else if (S_ISREG(statbuf.st_mode)) {
+				printf("%ld %s\n", statbuf.st_ino, dir);	
+			}
 		}
 
-		else if (strcmp(argv[2], "-l") == 0) { //myls <filename or dirname> -l
-			if ((dirptr = opendir(dir)) == NULL) {
-				fprintf(stderr, "<dir> opendir() error\n");
+		else if (strcmp(argv[1], "-l") == 0) { //myls <filename or dirname> -l
+			if (lstat(dir, &statbuf) < 0) {
+				fprintf(stderr, "lstat() error\n");
 				exit(1);
 			}
 
-			while ((entry = readdir(dirptr)) != NULL) {
-				if (!strcmp(entry -> d_name, ".") || !strcmp(entry -> d_name, "..")) {
-					continue;
+			if (S_ISDIR(statbuf.st_mode)) {
+				if ((dirptr = opendir(dir)) == NULL) {
+					fprintf(stderr, "<dir> opendir() error\n");
+					exit(1);
 				}
-				
-				else {
+
+				while ((entry = readdir(dirptr)) != NULL) {
 					sprintf(path, "%s/%s", dir, entry -> d_name);
-					if(lstat(path, &statbuf) < 0) {
-						fprintf(stderr, "<path> lstat() error\n");
+					if (lstat(path, &statbuf) < 0) {
+						fprintf(stderr, "lstat() error\n");
 						exit(1);
 					}
 
-					printf("%5ld ", statbuf.st_blocks);
+					if (!strcmp(entry -> d_name, ".") || !strcmp(entry -> d_name, "..")) {
+						continue;
+					}
+					
 					printf("%c%s ", type(statbuf.st_mode), perm(statbuf.st_mode));
-					printf("%3ld ", statbuf.st_nlink);
+					printf("%ld ", statbuf.st_nlink);
 					printf("%s %s ", getpwuid(statbuf.st_uid) -> pw_name, getgrgid(statbuf.st_gid) -> gr_name);
-					printf("%9ld ", statbuf.st_size);
+					printf("%6ld ", statbuf.st_size);
 					printf("%.12s ", ctime(&statbuf.st_mtime) + 4);
 					printf("%s\n", entry -> d_name);
 				}
 			}
 
+			else if (S_ISREG(statbuf.st_mode)) {
+				printf("%5ld ", statbuf.st_blocks);
+				printf("%c%s ", type(statbuf.st_mode), perm(statbuf.st_mode));
+				printf("%3ld ", statbuf.st_nlink);
+				printf("%s %s ", getpwuid(statbuf.st_uid) -> pw_name, getgrgid(statbuf.st_gid) -> gr_name);
+				printf("%9ld ", statbuf.st_size);
+				printf("%.12s ", ctime(&statbuf.st_mtime) + 4); 
+				printf("%s\n", dir);
+
+			}
+
 			closedir(dirptr);
+
 		}
 
-		else if (strcmp(argv[2], "-t") == 0) { //myls <filename or dirnme> -t
+		else if (strcmp(argv[1], "-t") == 0) { //myls <filename or dirname> -t
+			int file_cnt = 0; //파일 구조체 갸수
+			struct File_info file_table[512];
+	
 			if ((dirptr = opendir(dir)) == NULL) {
 				fprintf(stderr, "<dir> opendir() error\n");
 				exit(1);
@@ -262,8 +324,27 @@ int main (int argc, char* argv[]) {
 						exit(1);
 					}
 
-					//구현부
+					strcpy(file_table[file_cnt].filename, entry -> d_name);
+					file_table[file_cnt].file_time = statbuf.st_mtime;
+
+					file_cnt++;
 				}
+
+				struct File_info tmp;
+				for (int i = 0; i <= file_cnt; i++) {
+					for (int j = 0; j < file_cnt - (i + 1); j++) {
+						if (file_table[j].file_time > file_table[j+1].file_time) {
+							tmp = file_table[j+1];
+							file_table[j+1] = file_table[j];
+							file_table[j] = tmp;
+						}
+					}
+				}
+			}
+
+			for (int i = file_cnt; i >= 0; i--) {
+				printf("%s  ", file_table[i].filename);
+
 			}
 		}
 	}
@@ -285,7 +366,7 @@ char type(mode_t mode) {
 //파일 사용 권한을 리턴해주는 함수
 char* perm(mode_t mode) {
 	static char perms[10] = "---------";
-	
+
 	for (int i = 0; i < 3; i++) {
 		if (mode & (S_IRUSR >> i * 3)) perms[i*3] = 'r';
 		if (mode & (S_IWUSR >> i * 3)) perms[i*3+1] = 'w';
@@ -293,23 +374,4 @@ char* perm(mode_t mode) {
 	}
 
 	return(perms);
-}
-
-// -t 옵션에서 mtime 기준으로 정렬하는 함수
-void getMtime(struct stat *statbuf, char *filename) {
-	char str_mtime[MAX_SIZE] = "";
-	char buf[MAX_SIZE] = "";
-	struct tm *mtime;
-
-	mtime = localtime(&statbuf -> st_mtime);
-	sprintf(str_mtime, "%04d%02d%02d%02d%02d%02d %s", mtime -> tm_year + 1900, mtime -> tm_mon + 1, mtime -> tm_mday, mtime -> tm_hour, mtime -> tm_min, mtime -> tm_sec, filename);
-	
-	//printf("str_mtime : %s\n", str_mtime);
-
-	//return str_mtime;
-}
-
-//토큰을 분리하여 저장하는 변수
-void sortByMtime(char *str_mtime) {
-
 }
