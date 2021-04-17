@@ -17,7 +17,8 @@ char* perm(mode_t);
 
 int main (int argc, char* argv[]) {	
 	char *filename;
-	int file_perm = 0;
+	int file_perm[4] = { 0, };
+	char *file_perm_str;
 	struct stat statbuf;
 	DIR *dirptr = NULL;
 	struct dirent *entry;
@@ -28,13 +29,29 @@ int main (int argc, char* argv[]) {
 	}
 
 	filename = (char *)malloc(sizeof(char) * 512);
+	file_perm_str = (char *)malloc(sizeof (char) * 50);
 	memset(filename, 0, 512);
 
 	strcpy(filename, argv[1]);
-	file_perm = atoi(argv[2]);
+	strcpy(file_perm_str, argv[2]);
+	
+	for (int i = 0; i < 4; i++) {
+		file_perm[i] = file_perm_str[i] - '0';
+	}
+
+	mode_t mode;
+	mode = file_perm[3];
+	mode = mode | (file_perm[2] << 3);
+	mode = mode | (file_perm[1] << 6);
+	mode = mode | (file_perm[0] << 9);
 
 	if (access(filename, F_OK) < 0) { // access() 함수 사용해 파일 존재 여부 확인
 		fprintf(stderr, "<filename> doesn't exist.\n");
+		exit(1);
+	}
+	
+	if (lstat(filename, &statbuf) < 0) {
+		fprintf(stderr, "lstat() error\n");
 		exit(1);
 	}
 
@@ -43,14 +60,14 @@ int main (int argc, char* argv[]) {
 		exit(1);
 	}
 
-	if (chmod(filename, file_perm) < 0) {
+	if (chmod(filename, mode) < 0) {
 		fprintf(stderr, "<filename> chmod error\n");
 		exit(1);
 	}
 
 	else {
 		printf("<%s> success change mode\n", filename);
-	}
+	}	
 
 	return 0;
 }

@@ -105,6 +105,7 @@ int main (int argc, char* argv[]) {
 					sprintf(path, "%s/%s", dir, entry -> d_name);
 					if (lstat(path, &statbuf) < 0) {
 						fprintf(stderr, "<path> lstat() error\n");
+						exit(1);
 					}
 
 					printf("%5ld ", statbuf.st_blocks);
