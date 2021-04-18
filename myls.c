@@ -12,8 +12,8 @@
 
 #define MAX_SIZE 1024
 
-char type(mode_t);
-char* perm(mode_t); 
+char get_type(mode_t);
+char* check_permission(mode_t); 
 
 struct File_info { //파일명과 시간 저장을 위한 구조체
 	char filename[50]; //파일명
@@ -111,7 +111,7 @@ int main (int argc, char* argv[]) {
 						exit(1);
 					}
 
-					printf("%c%s ", type(statbuf.st_mode), perm(statbuf.st_mode)); //해당 파일의 권한 출력
+					printf("%c%s ", get_type(statbuf.st_mode), check_permission(statbuf.st_mode)); //해당 파일의 권한 출력
 					printf("%ld ", statbuf.st_nlink); //해당 파일의 링크 출력
 					printf("%s %s ", getpwuid(statbuf.st_uid) -> pw_name, getgrgid(statbuf.st_gid) -> gr_name); //uid와 gid출력
 					printf("%6ld ", statbuf.st_size); //해당 파일의 사이즈 출력
@@ -213,12 +213,12 @@ int main (int argc, char* argv[]) {
 		}
 	}
 
-//==============<< argc == 3 "myls <filename or dirname> <option> 명령어 구현부 >>==============
+//==============<< argc == 3 "myls <option> <filename or dirname> 명령어 구현부 >>==============
 
-	else if (argc == 3) { // myls <filename or directory_name> <option> 의 실행 인자 주어진 경우
+	else if (argc == 3) { // myls <option> <filename or directory_name>의 실행 인자 주어진 경우
 		dir = argv[2];
 
-		if (strcmp(argv[1], "-i") == 0) { //myls <filename or dirname> -i
+		if (strcmp(argv[1], "-i") == 0) { //myls -i <filename or dirname>
 			if (lstat(dir, &statbuf) < 0) {
 				fprintf(stderr, "lstat() error\n");
 				exit(1);
@@ -256,7 +256,7 @@ int main (int argc, char* argv[]) {
 			}
 		}
 
-		else if (strcmp(argv[1], "-l") == 0) { //myls <filename or dirname> -l
+		else if (strcmp(argv[1], "-l") == 0) { //myls -l <filename or dirname>
 			if (lstat(dir, &statbuf) < 0) {
 				fprintf(stderr, "lstat() error\n");
 				exit(1);
@@ -279,7 +279,7 @@ int main (int argc, char* argv[]) {
 						continue;
 					}
 
-					printf("%c%s ", type(statbuf.st_mode), perm(statbuf.st_mode));
+					printf("%c%s ", get_type(statbuf.st_mode), check_permission(statbuf.st_mode));
 					printf("%ld ", statbuf.st_nlink);
 					printf("%s %s ", getpwuid(statbuf.st_uid) -> pw_name, getgrgid(statbuf.st_gid) -> gr_name);
 					printf("%6ld ", statbuf.st_size);
@@ -289,11 +289,10 @@ int main (int argc, char* argv[]) {
 			}
 
 			else if (S_ISREG(statbuf.st_mode)) {
-				printf("%5ld ", statbuf.st_blocks);
-				printf("%c%s ", type(statbuf.st_mode), perm(statbuf.st_mode));
-				printf("%3ld ", statbuf.st_nlink);
+				printf("%c%s ", get_type(statbuf.st_mode), check_permission(statbuf.st_mode));
+				printf("%ld ", statbuf.st_nlink);
 				printf("%s %s ", getpwuid(statbuf.st_uid) -> pw_name, getgrgid(statbuf.st_gid) -> gr_name);
-				printf("%9ld ", statbuf.st_size);
+				printf("%6ld ", statbuf.st_size);
 				printf("%.12s ", ctime(&statbuf.st_mtime) + 4); 
 				printf("%s\n", dir);
 
@@ -303,49 +302,61 @@ int main (int argc, char* argv[]) {
 
 		}
 
-		else if (strcmp(argv[1], "-t") == 0) { //myls <filename or dirname> -t
-			int file_cnt = 0; //파일 구조체 갸수
+		else if (strcmp(argv[1], "-t") == 0) { //myls -t <filename or dirname>
+			int file_cnt = 0; //파일 구조체 개수
 			struct File_info file_table[512];
 
-			if ((dirptr = opendir(dir)) == NULL) {
-				fprintf(stderr, "<dir> opendir() error\n");
+			if (lstat(dir, &statbuf) < 0) { //인자로 입력받은 파일이 디렉토리인지 파일인지 구별 위해
+				fprintf(stderr, "lstat() error\n");
 				exit(1);
 			}
-
-			while ((entry = readdir(dirptr)) != NULL) {
-				if (!strcmp(entry -> d_name, ".") || !strcmp(entry -> d_name, "..")) {
-					continue;
+			
+			if (S_ISDIR(statbuf.st_mode)) { //디렉토리 파일인 경우
+				if ((dirptr = opendir(dir)) == NULL) {
+					fprintf(stderr, "<dir> opendir() error\n");
+					exit(1);
 				}
 
-				else {
-					sprintf(path, "%s/%s", dir, entry -> d_name);
-					if (lstat(path, &statbuf) < 0) {
-						fprintf(stderr, "<path> lstat() error\n");
-						exit(1);
+				while ((entry = readdir(dirptr)) != NULL) {
+					if (!strcmp(entry -> d_name, ".") || !strcmp(entry -> d_name, "..")) {
+						continue;
+					}
+	
+					else {
+						sprintf(path, "%s/%s", dir, entry -> d_name);
+						if (lstat(path, &statbuf) < 0) {
+							fprintf(stderr, "<path> lstat() error\n");
+							exit(1);
+						}
+	
+						strcpy(file_table[file_cnt].filename, entry -> d_name);
+						file_table[file_cnt].file_time = statbuf.st_mtime;
+
+						file_cnt++;
 					}
 
-					strcpy(file_table[file_cnt].filename, entry -> d_name);
-					file_table[file_cnt].file_time = statbuf.st_mtime;
-
-					file_cnt++;
-				}
-
-				struct File_info tmp;
-				for (int i = 0; i <= file_cnt; i++) {
-					for (int j = 0; j < file_cnt - (i + 1); j++) {
-						if (file_table[j].file_time > file_table[j+1].file_time) {
-							tmp = file_table[j+1];
-							file_table[j+1] = file_table[j];
-							file_table[j] = tmp;
+					struct File_info tmp;
+					for (int i = 0; i <= file_cnt; i++) {
+						for (int j = 0; j < file_cnt - (i + 1); j++) {
+							if (file_table[j].file_time > file_table[j+1].file_time) {
+								tmp = file_table[j+1];
+								file_table[j+1] = file_table[j];
+								file_table[j] = tmp;
+							}
 						}
 					}
 				}
+
+				for (int i = file_cnt; i >= 0; i--) {
+					printf("%s  ", file_table[i].filename);
+				}
 			}
 
-			for (int i = file_cnt; i >= 0; i--) {
-				printf("%s  ", file_table[i].filename);
-
+			else if (S_ISREG(statbuf.st_mode)) { //파일의 경우
+				printf("%s\t", dir); 	
 			}
+
+			printf("\n");
 		}
 	}
 
@@ -353,7 +364,7 @@ int main (int argc, char* argv[]) {
 }
 
 //파일의 타입을 리턴해주는 함수
-char type(mode_t mode) {
+char get_type(mode_t mode) {
 	if (S_ISREG(mode)) return '-';
 	if (S_ISDIR(mode)) return 'd';
 	if (S_ISCHR(mode)) return 'c';
@@ -364,7 +375,7 @@ char type(mode_t mode) {
 }
 
 //파일 사용 권한을 리턴해주는 함수
-char* perm(mode_t mode) {
+char* check_permission(mode_t mode) {
 	static char perms[10] = "---------";
 
 	for (int i = 0; i < 3; i++) {
