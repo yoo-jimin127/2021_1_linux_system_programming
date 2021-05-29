@@ -80,7 +80,9 @@ int main (int argc, char* argv[]) {
 void sequential_processing(char* input_filename, int input_gene) {
 	FILE* fp = NULL; //파일포인터
 	long long filesize = 0; //파일 크기 저장 변수
-	char *tmpbuf; //파일의 내용을 받아올 임시 버퍼
+	int **cell_arr; //세포 매트릭스를 저장할 2차원 정수형 배열
+	char *input_buf; //파일의 내용을 받아올 버퍼
+	char *tmpbuf; //2차원 배열에 저장하기 위한 임시 버퍼
 	long row = 0, col = 0; //매트릭스의 행, 열 저장 변수
 
 	if ((fp = fopen(input_filename, "r+")) == NULL) { //파일 내용 읽기 위해 읽기모드로 열기
@@ -92,20 +94,51 @@ void sequential_processing(char* input_filename, int input_gene) {
 	filesize = ftell(fp);
 	fseek(fp, 0, SEEK_SET); //파일크기 알아오고 다시 포인터 원위치로
 	
-	tmpbuf = (char*)malloc(sizeof(char) * filesize); //파일사이즈만큼 임시버퍼 동적할당
-	if (tmpbuf == NULL) {
-		fprintf(stderr, "tmpbuf memory malloc error\n");
+	input_buf = (char*)malloc(sizeof(char) * filesize); //파일사이즈만큼 임시버퍼 동적할당
+	if (input_buf == NULL) {
+		fprintf(stderr, "input_buf memory malloc error\n");
 		exit(1);
 	}
 
-	fread(tmpbuf, 1, filesize, fp);
-	//printf("%s\n", tmpbuf);
+	fread(input_buf, 1, filesize, fp); //input_buf에 파일의 내용 읽어옴
+	printf("%s\n", input_buf);
 	
 	row = get_row_cnt(input_filename);
-	col = get_col_cnt(input_filename);
+	col = get_col_cnt(input_filename); //행과 열의 개수 구하기
 
-	printf("row : %ld col : %ld\n", row, col);
+	cell_arr = (int**)malloc(sizeof(int*) * row);
+	for (int i = 0; i < row; i++) {
+		cell_arr[i] = (int *)malloc(sizeof(int) * col);
+	} //행과 열의 개수만큼 2차원 배열 동적할당
 	
+	/*
+	tmpbuf = (char *)malloc(sizeof(char) * filesize);
+	char *ptr = strtok(input_buf, " ");
+	//printf("ptr : %s", ptr);
+	int tmpbuf_cnt = 0;
+	while (ptr != NULL) {
+		strcpy(tmpbuf,ptr);
+		ptr = strtok(NULL, " ");
+		//tmpbuf_cnt++;
+		//strcpy(tmpbuf + tmpbuf_cnt,ptr);
+	}
+
+	printf("tmpbuf :%s\n", tmpbuf);
+	*/
+	int *arr = (int*)malloc(sizeof(int) * row * col);
+	for (int i = 0; i < filesize; i++) {
+		if (!strncmp(input_buf + i," ", 1) && !strncmp(input_buf + i, "\n", 1)) {
+			continue;
+		}
+		else {
+			arr[i] = atoi(input_buf + i);
+		}
+	}
+
+	for (int i = 0; i < row * col; i++) {
+		printf("%d", arr[i]);
+	}
+
 	//printf("순차처리 기능이 실행됩니다.\n");
 	//printf("%s %d\n", input_filename, input_gene);
 	
