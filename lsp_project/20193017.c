@@ -14,9 +14,9 @@
 #define MAX_SIZE 1024
 
 /* ========================== << 함수 정의부 >> ========================*/
-void sequential_processing(char* input_filename, int input_gene); //순차처리
-void process_parallel_processing(char* input_filename, int input_gene, int child_process_input); //프로세스 병렬처리
-void thread_parellel_processing(char* input_filename, int input_gene, int thread_process_input); //스레드 병렬처리
+void sequential_processing(int** cell_arr, int input_gene); //순차처리
+void process_parallel_processing(int** cell_arr, int input_gene, int child_process_input); //프로세스 병렬처리
+void thread_parellel_processing(int** cell_arr, int input_gene, int thread_process_input); //스레드 병렬처리
 int get_row_cnt(char* input_filename);
 int get_col_cnt(char* input_filename);
 
@@ -45,7 +45,7 @@ int main (int argc, char* argv[]) {
 
 			case 2 : // 순차처리
 				system("clear");
-				printf("순차처리 입장\n");
+				printf("======순차처리======\n");
 				printf("세대 수를 입력하세요 (최소 1세대 이상) : ");
 				scanf("%d", &input_gene);
 				sequential_processing(input_filename, input_gene);
@@ -53,7 +53,7 @@ int main (int argc, char* argv[]) {
 
 			case 3 : // process 병렬처리
 				system("clear");
-				printf("process 병렬처리 입장\n");
+				printf("======process 병렬처리======\n");
 				printf("세대 수를 입력하세요 (최소 1세대 이상) : ");
 				scanf("%d", &input_gene);
 				printf("생성할 child process의 개수를 입력하세요 : ");
@@ -63,13 +63,16 @@ int main (int argc, char* argv[]) {
 			
 			case 4 : // thread 병렬처리
 				system("clear");
-				printf("thread 병렬처리 입장\n");
+				printf("======thread 병렬처리======\n");
 				printf("세대 수를 입력하세요 (최소 1세대 이상) : ");
 				scanf("%d", &input_gene);
 				printf("생성할 thread의 개수를 입력하세요 : ");
 				scanf("%d", &thread_input);
 				thread_parellel_processing(input_filename, input_gene, thread_input);
 				break;
+
+			default : // 그 밖의 메뉴 선택
+				printf("(1) ~ (4) 메뉴를 선택하세요.\n");
 		}
 	}
 
@@ -77,13 +80,14 @@ int main (int argc, char* argv[]) {
 }
 
 /*================================ << 순차처리 기능 구현부 >> ================================*/
-void sequential_processing(char* input_filename, int input_gene) {
+void sequential_processing(int** cell_arr, int input_gene) {
 	FILE* fp = NULL; //파일포인터
 	long long filesize = 0; //파일 크기 저장 변수
 	int **cell_arr; //세포 매트릭스를 저장할 2차원 정수형 배열
 	char *input_buf; //파일의 내용을 받아올 버퍼
 	char *tmpbuf; //2차원 배열에 저장하기 위한 임시 버퍼
 	long row = 0, col = 0; //매트릭스의 행, 열 저장 변수
+	long row_cnt = 0, col_cnt = 0; //행, 열 카운트 변수
 
 	if ((fp = fopen(input_filename, "r+")) == NULL) { //파일 내용 읽기 위해 읽기모드로 열기
 		fprintf(stderr, "fopen() error <mode : [r+]> in sequential_processing()\n");
@@ -100,17 +104,50 @@ void sequential_processing(char* input_filename, int input_gene) {
 		exit(1);
 	}
 
-	fread(input_buf, 1, filesize, fp); //input_buf에 파일의 내용 읽어옴
-	printf("%s\n", input_buf);
+	while(!feof(fp)) { //input_buf에 파일의 값의 공백자를 제거하고 넣어줌
+		fgets(input_buf, filesize, fp);
+		char *token = strtok(input_buf, " ");
+		while(token != NULL) {
+			token = strtok(NULL, " ");
+		}
+	}
+	fseek(fp, 0, SEEK_SET); //파일포인터의 위치 초기화
+	//fread(input_buf, 1, filesize, fp); //input_buf에 파일의 내용 읽어옴
+	printf("input_buf : %s\n", input_buf);
 	
 	row = get_row_cnt(input_filename);
 	col = get_col_cnt(input_filename); //행과 열의 개수 구하기
 
-	cell_arr = (int**)malloc(sizeof(int*) * row);
+	printf("row : %ld, col : %ld\n", row, col);
+
+	cell_arr = (int**)malloc(sizeof(int*) * (row + 2)); //가장자리 세포의 이웃 생성 (행)
 	for (int i = 0; i < row; i++) {
-		cell_arr[i] = (int *)malloc(sizeof(int) * col);
+		cell_arr[i] = (int *)malloc(sizeof(int) * (col + 2)); //가장자리 세포의 이웃 생성 (열)
 	} //행과 열의 개수만큼 2차원 배열 동적할당
-	
+	memset(cell_arr, 0, sizeof(cell_arr)); //동적할당된 2차원 int형 배열의 값 0으로 초기화
+
+	row_cnt = 0;
+	while(!feof(fp)) {
+		col_cnt = 0;
+		fgets(input_buf, filesize, fp);
+		char *token = strtok(input_buf, " ");
+		while(token != NULL) {
+			cell_arr[row_cnt + 1][col_cnt + 1] = atoi(token);
+			col_cnt++;
+			token = strtok(NULL, " ");
+		}
+		row_cnt++;
+	}
+
+	printf("input_buf : %s\n", input_buf);
+	printf("-----cell_arr-----\n");
+
+	for (int i = 0; i < row + 2; i++) {
+		for (int j = 0; j < col + 2; j++) {
+			printf("%d#", cell_arr[i][j]);
+		}
+		printf("\n");
+	}
 	/*
 	tmpbuf = (char *)malloc(sizeof(char) * filesize);
 	char *ptr = strtok(input_buf, " ");
@@ -124,7 +161,7 @@ void sequential_processing(char* input_filename, int input_gene) {
 	}
 
 	printf("tmpbuf :%s\n", tmpbuf);
-	*/
+	
 	int *arr = (int*)malloc(sizeof(int) * row * col);
 	for (int i = 0; i < filesize; i++) {
 		if (!strncmp(input_buf + i," ", 1) && !strncmp(input_buf + i, "\n", 1)) {
@@ -137,7 +174,8 @@ void sequential_processing(char* input_filename, int input_gene) {
 
 	for (int i = 0; i < row * col; i++) {
 		printf("%d", arr[i]);
-	}
+	}*/
+
 
 	//printf("순차처리 기능이 실행됩니다.\n");
 	//printf("%s %d\n", input_filename, input_gene);
@@ -146,14 +184,14 @@ void sequential_processing(char* input_filename, int input_gene) {
 }
 
 /*================================ << process 병렬처리 기능 구현부 >> ================================*/
-void process_parallel_processing(char* input_filename, int input_gene, int child_process_input) {
+void process_parallel_processing(int** cell_arr, int input_gene, int child_process_input) {
 	printf("프로세스 병렬처리 기능이 실행됩니다.\n");
 	printf("%s %d %d\n", input_filename, input_gene, child_process_input);
 	return;
 }
 
 /*================================ << thread 병렬처리 기능 구현부 >> ================================*/
-void thread_parellel_processing(char* input_filename, int input_gene, int thread_process_input) {
+void thread_parellel_processing(int** cell_arr, int input_gene, int thread_process_input) {
 	printf("스레드 병렬처리 기능이 실행됩니다.\n");
 	printf("%s %d %d\n", input_filename, input_gene, thread_process_input);
 	return;
