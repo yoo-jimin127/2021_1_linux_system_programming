@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
 	m = row;
 	printf("1 m %d n %d \n",m,n);
 	fclose(check);
-
+	//printf("line : %s\n", line);
 
 
 	FILE* fp = fopen(argv[1],"r+");
@@ -65,8 +65,8 @@ int main(int argc, char* argv[]) {
 /*
 matrix 준비완료.
 */
-	for(int i = 0; i < m; i++){
-		for(int j = 0; j < n; j++){
+	for(int i = 1; i < m + 1; i++){
+		for(int j = 1; j < n + 1; j++){
 			printf("%d ",matrix[i][j]);
 		}
 		printf("\n");
