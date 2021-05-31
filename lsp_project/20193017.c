@@ -35,9 +35,13 @@ int main (int argc, char* argv[]) {
 	char *input_buf; //파일의 내용을 받아올 버퍼
 	//char *tmpbuf; //2차원 배열에 저장하기 위한 임시 버퍼
 	long row_cnt = 0, col_cnt = 0; //행, 열 카운트 변수
+	
+	clock_t start, finish;
+	double duration;
 
 	strcpy(input_filename, argv[1]); //입력받은 argv[1](input.matrix)파일명을 복사 
 	
+	start = clock();
 	if ((fp = fopen(input_filename, "r+")) == NULL) { //파일 내용 읽기 위해 읽기모드로 열기
 		fprintf(stderr, "fopen() error <mode : [r+]> in main() first call.\n");
 		exit(1);
@@ -102,27 +106,39 @@ int main (int argc, char* argv[]) {
 				printf("======순차처리======\n");
 				printf("진행할 세대 수를 입력하세요 (최소 1세대 이상) : ");
 				scanf("%d", &input_gene);
+
 				sequential_processing(cell_arr, input_gene);
+				finish = clock();
+				duration = (double)(finish - start);
+				printf("#순차처리 %d세대 진행 총 수행시간 : %lfms\n\n", input_gene, duration);
 				break;
 
 			case 3 : // process 병렬처리
 				system("clear");
 				printf("======process 병렬처리======\n");
-				printf("진행할 세대 수를 입력하세요 (최소 1세대 이상) : ");
-				scanf("%d", &input_gene);
 				printf("생성할 child process의 개수를 입력하세요 : ");
 				scanf("%d", &child_process_input);
+				printf("진행할 세대 수를 입력하세요 (최소 1세대 이상) : ");
+				scanf("%d", &input_gene);
+
 				process_parallel_processing(cell_arr, input_gene, child_process_input);
+				finish = clock();
+				duration = (double)(finish - start);
+				printf("#프로세스 병렬처리 %d세대 진행 총 수행시간 : %lfms\n\n", input_gene, duration);
 				break;
 			
 			case 4 : // thread 병렬처리
 				system("clear");
 				printf("======thread 병렬처리======\n");
-				printf("진행할 세대 수를 입력하세요 (최소 1세대 이상) : ");
-				scanf("%d", &input_gene);
 				printf("생성할 thread의 개수를 입력하세요 : ");
 				scanf("%d", &thread_input);
+				printf("진행할 세대 수를 입력하세요 (최소 1세대 이상) : ");
+				scanf("%d", &input_gene);
+
 				thread_parellel_processing(cell_arr, input_gene, thread_input);
+				finish = clock();
+				duration = (double)(finish - start);
+				printf("#스레드 병렬처리 %d세대 진행 총 수행시간 : %lfms\n\n", input_gene, duration);
 				break;
 
 			default : // 그 밖의 메뉴 선택
