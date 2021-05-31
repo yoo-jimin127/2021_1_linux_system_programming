@@ -260,6 +260,46 @@ void sequential_processing(int** cell_arr, int input_gene) {
 void process_parallel_processing(int** cell_arr, int input_gene, int child_process_input) {
 	printf("프로세스 병렬처리 기능이 실행됩니다.\n");
 	//printf("%s %d %d\n", input_filename, input_gene, child_process_input);
+	pid_t pids[child_process_input], pid;
+	int child_process_cnt = 0;
+	int state;
+	int *work_per_process = (int*)malloc(sizeof(int) * child_process_input);
+
+	//자식 프로세스 별로 담당해야하는 줄 수 배분 작업
+	if (row % child_process_input == 0) { //child process가 담당하는 행이 균등하게 나누어지는 경우
+		for (int i = 0; i < child_process_input; i++) {
+			work_per_process[i] = row / child_process_input;
+		}
+	}
+
+	else if (row % child_process_input != 0) {
+		int mod = row % child_process_input;
+		for (int i = 0; i < child_process_input; i++) {
+			work_per_process[i] = row / child_process_input;
+		}
+
+		for (int i = 0; i < mod; i++) {
+			work_per_process[i] += 1;
+		}
+	}
+
+	while (child_process_cnt < child_process_input) {
+		pid = wait(&state); //자식 프로세스 종료 대기 (각 프로세스가 따로 동작하고 종료를 기다림)
+		pids[child_process_cnt] = fork(); //자식 프로세스 생성
+		if (pids[child_process_cnt] < 0) {
+			fprintf(stderr, "pids[%d] fork() error in process_parallel_processing.\n");
+			exit(1);
+		}
+		else if (pids[chile_process_cnt] == 0) { //자식 프로세스
+			printf("child : %ld\n", (long)getpid());
+			exit(0);
+		}
+		else { //부모 프로세스
+			printf("parent : %ld\n", (long)getpid());
+		}
+		child_procss_cnt++;
+	}
+
 	return;
 }
 
