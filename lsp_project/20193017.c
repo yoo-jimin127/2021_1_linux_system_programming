@@ -61,21 +61,18 @@ int main (int argc, char* argv[]) {
 	for (int i = 0; i < row + 2; i++) { //동적할당된 2차원 Int형 배열의 값 0으로 초기화
 		for (int j = 0; j < col + 2; j++) {
 			cell_arr[i][j] = 0;
-			//printf("cell_arr[%d][%d] : %d\n", i, j, cell_arr[i][j]);
 		}
 	}
-	fseek(fp, 0, SEEK_SET);
+	fseek(fp, 0, SEEK_SET); //파일포인터의 위치 파일의 시작으로 옮김
 	row_cnt = 0;
 	while(!feof(fp)) {
 		col_cnt = 0;
-		fgets(input_buf, MAX_SIZE, fp);
-		char *token = strtok(input_buf, " ");
-		while(token != NULL) {
-			//printf("%s\n", token);
-			cell_arr[row_cnt + 1][col_cnt + 1] = atoi(token);
-			//printf("cell_arr[%ld][%ld] : %d\n", row_cnt + 1, col_cnt + 1, cell_arr[row_cnt + 1][col_cnt + 1]);
+		fgets(input_buf, MAX_SIZE, fp); //1줄씩 파일의 내용을 읽어와서
+		char *token = strtok(input_buf, " "); //공백자를 기준으로 토큰 분리
+		while(token != NULL) { //더이상 분리되는 토큰이 없을 때까지
+			cell_arr[row_cnt + 1][col_cnt + 1] = atoi(token); //(row_cnt + 1, col_cnt + 1)에 정수로 형변환하여 넣기
 			col_cnt++;
-			token = strtok(NULL, " ");
+			token = strtok(NULL, " "); //다음 토큰 get
 		}
 		row_cnt++;
 	}
@@ -132,7 +129,7 @@ int main (int argc, char* argv[]) {
 				printf("(1) ~ (4) 메뉴를 선택하세요.\n");
 		}
 	}
-
+	fclose(fp);
 	return 0;
 }
 
@@ -151,12 +148,12 @@ void sequential_processing(int** cell_arr, int input_gene) {
 	char *space_bar = " "; //공백문자
 	char *enter = "\n"; //개행문자
 	
-	working_cell_arr = (int**)malloc(sizeof(int*) * (row + 2));
+	working_cell_arr = (int**)malloc(sizeof(int*) * (row + 2)); //가장자리의 이웃세포까지 만들어주기위해 행, 열의 +2만큼 동적할당
 	for (int i = 0; i < row + 2; i++) {
 		working_cell_arr[i] = (int*)malloc(sizeof(int) * (col + 2));
 	}
 
-	new_cell_arr = (int**)malloc(sizeof(int*) * row);
+	new_cell_arr = (int**)malloc(sizeof(int*) * row); //새롭게 생성되는 다음 세대의 파일 내용 담을 정수형 배열 동적할당
 	for (int i = 0; i < row; i++) {
 		new_cell_arr[i] = (int*)malloc(sizeof(int) * col);
 	}
@@ -181,21 +178,21 @@ void sequential_processing(int** cell_arr, int input_gene) {
 	} */
 
 	//-----------------------------게임 진행-------------------------
-	for (int i = 0; i < input_gene; i++) {
+	for (int i = 0; i < input_gene - 1; i++) { //입력받은 세대만큼 반복 진행
+		for (int j = 0; j < row; j++) { //세대를 반복할 때 new_cell_arr의 내용 초기화하고 시작
+			for (int k = 0; k < col; k++) {
+				new_cell_arr[j][k] = 0;
+			}
+		}
+
 		for (int j = 1; j <= row; j++) { // row만큼 진행[1][1] ~ (실제 데이터가 들어있는 배열원소 시작 인덱스 값)
 			for (int k = 1; k <= col; k++) {
-				//printf("1\n");
-				alive_cell_cnt = get_alive_cell(working_cell_arr, j, k); //살아있는 세포 개수
-				//printf("working_cell_arr[%d][%d] alive_cell_cnt : %d\n",j, k, alive_cell_cnt);
-				if (working_cell_arr[j][k] == 1) { //세포가 살아있는 경우
-					if (3 <= alive_cell_cnt && alive_cell_cnt <= 6) { //3 <= 산세포 <= 6
-						new_cell_arr[j-1][k-1] = 1;
-					}
+				alive_cell_cnt = get_alive_cell(working_cell_arr, j, k); //살아있는 세포 개수를 얻어옴
+				if ((working_cell_arr[j][k] == 1) && (3 <= alive_cell_cnt) && (alive_cell_cnt <= 6)) { //세포가 살아있는 경우(1) && 3 <= 산 이웃세포 <= 6
+						new_cell_arr[j-1][k-1] = 1; //(j -1) (k -1)의 세포 값을 1로 변경
 				}
-				else if (working_cell_arr[j][k] == 0) { //세포가 죽어있는 경우
-					if (alive_cell_cnt == 4) {
-						new_cell_arr[j-1][k-1] = 1;
-					}
+				else if (working_cell_arr[j][k] == 0 && alive_cell_cnt == 4) { //세포가 죽은 경우(0) && 산 이웃세포 == 4
+						new_cell_arr[j-1][k-1] = 1; // (j - 1) ( k - 1)의 세포 값을 1로 변경
 				}
 			}
 		}
@@ -203,7 +200,7 @@ void sequential_processing(int** cell_arr, int input_gene) {
 		sprintf(new_filename, "gen_%d.matrix", i+1); //gen_n.matrix이름의 파일명 생성
 		if ((new_fp = fopen(new_filename, "w+")) == NULL) { //읽기, 쓰기 모드로 열어 파일 없으면 새로 생성하도록
 			fprintf(stderr, "new_fp fopen() error <mode : [w+]> in sequential_processing.\n");
-			exit(1);
+			exit(1); //예외처리
 		}
 
 		//배열에 값 넣는 작업
@@ -212,29 +209,29 @@ void sequential_processing(int** cell_arr, int input_gene) {
 			for (int k = 0; k < col; k++) {
 				working_cell_arr[j + 1][k + 1] = new_cell_arr[j][k]; //작업 매트릭스의 값 업데이트
 				sprintf(tmp_cell, "%d", new_cell_arr[j][k]); //새롭게 생성된 세포배열 문자열 변환
-				fwrite(tmp_cell, 1, strlen(tmp_cell), new_fp); //배열에 해당 세포 원소값 쓰는 작업
-				fwrite(space_bar, 1, strlen(space_bar), new_fp);
-				if (col == k + 1) {
-					fwrite(enter, 1, strlen(enter), new_fp);
+				fwrite(tmp_cell, 1, sizeof(char), new_fp); //배열에 해당 세포 원소값 쓰는 작업
+				fwrite(space_bar, 1, sizeof(char), new_fp); //공백자로 구분하여 넣음
+				if (col == k + 1) { //다음 행으로 넘어가기 위한 조건
+					fwrite(enter, 1, sizeof(char), new_fp); //파일에 개행 fwrite
 				}
 			}
 		}
 		fclose(new_fp);
 	}
 
-	memset(tmp_cell, 0, sizeof(char) * 10);
+	memset(tmp_cell, 0, sizeof(char) * 10); //tmp_cell 버퍼 사용 전 초기화 작업
 	char *final_filename = "output.matrix";
-	if ((final_fp = fopen(final_filename, "w+")) == NULL) {
+	if ((final_fp = fopen(final_filename, "w+")) == NULL) { //output.matrix 파일 생성 및 열기
 		fprintf(stderr, "final_fp fopen() error <mode : [w+]> in sequential_processing.\n");
 		exit(1);
 	}
 	for (int i = 1; i <= row; i++) {
 		for (int j = 1; j <= col; j++) {
-			sprintf(tmp_cell, "%d", working_cell_arr[i][j]);
-			fwrite(tmp_cell, 1, strlen(tmp_cell), final_fp);
-			fwrite(space_bar, 1, strlen(space_bar), final_fp);
+			sprintf(tmp_cell, "%d", working_cell_arr[i][j]); //세포 값 문자열로 변환하여 tmp_cell에 sprintf()
+			fwrite(tmp_cell, 1, sizeof(char), final_fp); //세포 값 fwrite
+			fwrite(space_bar, 1, sizeof(char), final_fp);
 			if (j == col) {
-				fwrite(enter, 1, strlen(enter), final_fp);
+				fwrite(enter, 1, sizeof(char), final_fp);
 			}
 		}
 	}
