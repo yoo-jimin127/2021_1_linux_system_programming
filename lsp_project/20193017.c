@@ -49,12 +49,9 @@ int main (int argc, char* argv[]) {
 		exit(1);
 	}
 	memset(input_buf, 0, MAX_SIZE);
-	//printf("input_buf : %s\n", input_buf);
 	
 	row = get_row_cnt(input_filename);
 	col = get_col_cnt(input_filename); //행과 열의 개수 구하기
-
-	printf("row : %ld, col : %ld\n", row, col);
 
 	cell_arr = (int**)malloc(sizeof(int*) * (row + 2)); //가장자리 세포의 이웃 생성 (행)
 	for (int i = 0; i < row + 2; i++) {
@@ -64,7 +61,7 @@ int main (int argc, char* argv[]) {
 	for (int i = 0; i < row + 2; i++) { //동적할당된 2차원 Int형 배열의 값 0으로 초기화
 		for (int j = 0; j < col + 2; j++) {
 			cell_arr[i][j] = 0;
-			printf("cell_arr[%d][%d] : %d\n", i, j, cell_arr[i][j]);
+			//printf("cell_arr[%d][%d] : %d\n", i, j, cell_arr[i][j]);
 		}
 	}
 	fseek(fp, 0, SEEK_SET);
@@ -72,7 +69,6 @@ int main (int argc, char* argv[]) {
 	while(!feof(fp)) {
 		col_cnt = 0;
 		fgets(input_buf, MAX_SIZE, fp);
-		//printf("input_buf : %s\n", input_buf);
 		char *token = strtok(input_buf, " ");
 		while(token != NULL) {
 			//printf("%s\n", token);
@@ -84,11 +80,6 @@ int main (int argc, char* argv[]) {
 		row_cnt++;
 	}
 
-	//printf("input_buf : %s\n", input_buf);
-	printf("row : %ld, col : %ld\n", row, col);
-	//printf("row_cnt : %ld, col_cnt : %ld\n", row_cnt, col_cnt);
-	printf("-----cell_arr-----\n");
-
 	/*for (int i = 1; i < row + 1; i++) { //온전한 input.matrix의 내용
 		for (int j = 1; j < col + 1; j++) {
 			printf("%d#", cell_arr[i][j]);
@@ -96,7 +87,7 @@ int main (int argc, char* argv[]) {
 		printf("\n");
 	}*/	
 
-	//=====================메뉴 출력 후 해당 기능으로 인자를 넘기는 작업================
+	//-----------------------메뉴 출력 후 해당 기능으로 인자를 넘기는 작업---------------------
 	while(1) {
 		printf("(1) 프로그램 종료\t (2) 순차처리\t (3) Process 병렬처리\t (4) Thread 병렬처리\n");
 		printf("원하는 메뉴를 입력하세요 : ");
@@ -148,15 +139,32 @@ int main (int argc, char* argv[]) {
 /*================================ << 순차처리 기능 구현부 >> ================================*/
 void sequential_processing(int** cell_arr, int input_gene) {
 	//printf("순차처리 기능이 실행됩니다.\n");
-	//printf("%s %d\n", input_filename, input_gene);
+	printf("input_gene : %d row : %ld col : %ld\n", input_gene, row, col);
+	
 	char *new_filename = (char *)malloc(sizeof(char) * MAX_SIZE);
-	FILE* new_fp = NULL;
-	int working_cell_arr[row + 2][col + 2]; //인자로 전달받은 매트릭스 복사해 작업하기 위한 목적의 배열
-	int new_cell_arr[row][col]; //다음 단계에서 생성될 매트릭스
-	int alive_cell_cnt = 0;
+	FILE* new_fp = NULL; //다음 세대 매트릭스 파일 생성을 위한 파일포인터
+	FILE* final_fp = NULL; //output.matrix 파일 생성을 위한 파일포인터
+	int **working_cell_arr; //인자로 전달받은 매트릭스 복사해 작업하기 위한 목적의 배열
+	int **new_cell_arr; //다음 단계에서 생성될 매트릭스
+	int alive_cell_cnt = 0; //살아있는 이웃세포의 개수를 저장하기 위한 변수
+	char tmp_cell[10] = ""; //다음 세대의 파일 내용을 저장할 때 필요한 세포 저장 임시 버퍼
+	char *space_bar = " "; //공백문자
+	char *enter = "\n"; //개행문자
+	
+	working_cell_arr = (int**)malloc(sizeof(int*) * (row + 2));
+	for (int i = 0; i < row + 2; i++) {
+		working_cell_arr[i] = (int*)malloc(sizeof(int) * (col + 2));
+	}
+
+	new_cell_arr = (int**)malloc(sizeof(int*) * row);
+	for (int i = 0; i < row; i++) {
+		new_cell_arr[i] = (int*)malloc(sizeof(int) * col);
+	}
 
 	for (int i = 0; i < row; i++) { // 새로 생성된 배열 값 초기화
-		memset(new_cell_arr[i], 0, sizeof(int) * col); //new_cell_arr memset
+		for (int j = 0; j < col; j++) {
+			new_cell_arr[i][j] = 0; //new_cell_arr memset
+		}
 	}
 
 	for (int i = 0; i < row + 2; i++) {
@@ -164,13 +172,21 @@ void sequential_processing(int** cell_arr, int input_gene) {
 			working_cell_arr[i][j] = cell_arr[i][j]; //인자로 전달받은 배열의 값 이 곳에 할당
 		}
 	}
+	
+	/*for (int i = 0; i < row + 2; i++) {
+		for (int j = 0; j < col + 2; j++) {
+			printf("%d ", working_cell_arr[i][j]);
+		}
+		printf("\n");
+	} */
 
 	//-----------------------------게임 진행-------------------------
 	for (int i = 0; i < input_gene; i++) {
 		for (int j = 1; j <= row; j++) { // row만큼 진행[1][1] ~ (실제 데이터가 들어있는 배열원소 시작 인덱스 값)
 			for (int k = 1; k <= col; k++) {
+				//printf("1\n");
 				alive_cell_cnt = get_alive_cell(working_cell_arr, j, k); //살아있는 세포 개수
-
+				//printf("working_cell_arr[%d][%d] alive_cell_cnt : %d\n",j, k, alive_cell_cnt);
 				if (working_cell_arr[j][k] == 1) { //세포가 살아있는 경우
 					if (3 <= alive_cell_cnt && alive_cell_cnt <= 6) { //3 <= 산세포 <= 6
 						new_cell_arr[j-1][k-1] = 1;
@@ -185,13 +201,44 @@ void sequential_processing(int** cell_arr, int input_gene) {
 		}
 
 		sprintf(new_filename, "gen_%d.matrix", i+1); //gen_n.matrix이름의 파일명 생성
-		if ((fp = fopen(new_fp, "w+")) == NULL) {
+		if ((new_fp = fopen(new_filename, "w+")) == NULL) { //읽기, 쓰기 모드로 열어 파일 없으면 새로 생성하도록
 			fprintf(stderr, "new_fp fopen() error <mode : [w+]> in sequential_processing.\n");
 			exit(1);
 		}
 
 		//배열에 값 넣는 작업
+		memset(tmp_cell, 0, sizeof(char) * 10); //먼저 임시버퍼 초기화를 시켜준 뒤
+		for (int j = 0; j < row; j++) {
+			for (int k = 0; k < col; k++) {
+				working_cell_arr[j + 1][k + 1] = new_cell_arr[j][k]; //작업 매트릭스의 값 업데이트
+				sprintf(tmp_cell, "%d", new_cell_arr[j][k]); //새롭게 생성된 세포배열 문자열 변환
+				fwrite(tmp_cell, 1, strlen(tmp_cell), new_fp); //배열에 해당 세포 원소값 쓰는 작업
+				fwrite(space_bar, 1, strlen(space_bar), new_fp);
+				if (col == k + 1) {
+					fwrite(enter, 1, strlen(enter), new_fp);
+				}
+			}
+		}
+		fclose(new_fp);
 	}
+
+	memset(tmp_cell, 0, sizeof(char) * 10);
+	char *final_filename = "output.matrix";
+	if ((final_fp = fopen(final_filename, "w+")) == NULL) {
+		fprintf(stderr, "final_fp fopen() error <mode : [w+]> in sequential_processing.\n");
+		exit(1);
+	}
+	for (int i = 1; i <= row; i++) {
+		for (int j = 1; j <= col; j++) {
+			sprintf(tmp_cell, "%d", working_cell_arr[i][j]);
+			fwrite(tmp_cell, 1, strlen(tmp_cell), final_fp);
+			fwrite(space_bar, 1, strlen(space_bar), final_fp);
+			if (j == col) {
+				fwrite(enter, 1, strlen(enter), final_fp);
+			}
+		}
+	}
+	fclose(final_fp);
 		
 	return;
 }
@@ -255,13 +302,25 @@ int get_col_cnt(char* input_filename) {
 //인자로 주어진 매트릭스에서 살아있는 세포의 개수를 구해 리턴하는 함수
 int get_alive_cell(int **cell_arr, int row_num, int col_num) {
 	int alive_cell_cnt = 0;
+	//printf("row_num : %d, col_num : %d\n", row_num, col_num);
+
+	/*for (int i = 0; i < row + 2; i++) {
+		for (int j = 0; j < col + 2; j++) {
+			printf("%d ", cell_arr[i][j]);
+		}
+		printf("\n");
+	} */
 
 	for (int i = row_num - 1; i <= row_num + 1; i++) {
-		for (int j = col_num - 1; j <= col_num + 1; i++) {
+		for (int j = col_num - 1; j <= col_num + 1; j++) {
 			if (cell_arr[i][j] == 1) {
 				alive_cell_cnt++;
 			}
 		}
+	}
+
+	if (cell_arr[row_num][col_num] == 1) {
+		alive_cell_cnt -= 1;
 	}
 
 	return alive_cell_cnt;
