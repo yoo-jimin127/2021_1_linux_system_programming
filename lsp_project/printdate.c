@@ -14,7 +14,7 @@ int main (int argc, char **argv) { // ./printdate (timelimit)
 
 	if (timelimit == 0) { //인자로 전달받은 timelimit의 값이 존재하지 않는 경우 (무한루프)
 		while(1) {
-			
+				
 		}
 	}
 

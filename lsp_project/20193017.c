@@ -5,7 +5,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-//#include <pthread.h>
+#include <pthread.h>
 #include <sys/wait.h>
 #include <dirent.h>
 #include <sys/time.h>
@@ -17,7 +17,7 @@
 /* ========================== << 함수 정의부 >> ========================*/
 void sequential_processing(int** cell_arr, int input_gene); //순차처리
 void process_parallel_processing(int** cell_arr, int input_gene, int child_process_input); //프로세스 병렬처리
-void thread_parellel_processing(int** cell_arr, int input_gene, int thread_process_input); //스레드 병렬처리
+void thread_parellel_processing(int** cell_arr, int input_gene, int thread_input); //스레드 병렬처리
 int get_row_cnt(char* input_filename);
 int get_col_cnt(char* input_filename);
 int get_alive_cell(int **cell_arr, int row_cnt, int col_cnt);
@@ -312,12 +312,12 @@ void process_parallel_processing(int** cell_arr, int input_gene, int child_proce
 	//	for (gene_cnt = 0; gene_cnt < input_gene - 1; gene_cnt++) {
 	for (int i = 0; i < child_process_input; i++) {
 		if ((remainder_row % (child_process_input - i)) != 0) {
-			rows_per_child = (remainder_row / child_process_input) + 1;
+			rows_per_child = (remainder_row / (child_process_input - i)) + 1;
 			printf("step %d case A - rows_per_child : %d\n", i, rows_per_child);
 		}
 
 		else if ((remainder_row % (child_process_input - i)) == 0) {
-			rows_per_child = remainder_row / child_process_input;
+			rows_per_child = remainder_row / (child_process_input - i);
 			printf("step %d case B - rows_per_child : %d\n", i, rows_per_child);
 		}
 
@@ -326,13 +326,15 @@ void process_parallel_processing(int** cell_arr, int input_gene, int child_proce
 			exit(1);
 		}
 		else if (pids[i] == 0) { //자식 프로세스
+			printf("pids[%d] : %d\n", i, getpid());
 			for (int j = row_cnt + 1; j <= row_cnt + rows_per_child; j++) { //실제 데이터가 저장된 1행부터 시작
 				for (int k = 1; k <= col; k++) { //실제 데이터가 저장된 1열부터 시작
 					alive_cell_cnt = get_alive_cell(working_cell_arr, j, k);
+					printf("alive_cell_cnt[%d][%d] : %d\n", j, k, alive_cell_cnt);
 					if ((working_cell_arr[j][k] == 1) && (3 <= alive_cell_cnt) && (alive_cell_cnt <= 6)) {
 						new_cell_arr[j-1][k-1] = 1;
 					}
-					else if ((working_cell_arr[j][k] == 0) && alive_cell_cnt == 4) {
+					else if ((working_cell_arr[j][k] == 0) && (alive_cell_cnt == 4)) {
 						new_cell_arr[j-1][k-1] = 1;
 					}
 				}
@@ -371,10 +373,74 @@ void process_parallel_processing(int** cell_arr, int input_gene, int child_proce
 }
 
 /*================================ << thread 병렬처리 기능 구현부 >> ================================*/
-void thread_parellel_processing(int** cell_arr, int input_gene, int thread_process_input) {
+void thread_parellel_processing(int** cell_arr, int input_gene, int thread_input) {
 	printf("스레드 병렬처리 기능이 실행됩니다.\n");
-	//printf("%s %d %d\n", input_filename, input_gene, thread_process_input);
+	//printf("%s %d %d\n", input_filename, input_gene, thread_num_input);
+	char *new_filename = (char *)malloc(sizeof(char) * MAX_SIZE);
+	FILE *new_fp = NULL; //다음 세대 매트릭스 파일 생성을 위한 파일포인터
+	FILE *final_fp = NULL; //output.matrix 파일 생성을 위한 파일포인터
+	int **working_cell_arr; //인자로 전달받은 매트릭스 복사해 작업하기 위한 목적의 배열
+	int **new_cell_arr; //다음 단계에서 생성될 매트릭스
+	int alive_cell_cnt = 0; //살아있는 이웃세포의 개수를 저장하기 위한 변수
+	char tmp_cell[10] = ""; //다음 세대의 파일 내용을 저장할 때 필요한 세포 저장 임시 버퍼
+	char *space_bar = " "; //공백문자
+	char *enter = "\n"; //개행문자
+	
+	pthread_t tids[thread_input]; //스레드 아이디
+	pid_t pids[thread_input];
+	int row_cnt = 0;
+	int remainder_row = row;
+	int rows_per_thread = 0;
+	int gene_cnt = 0;
+
+	working_cell_arr = (int **)malloc(sizeof(int *) * (row + 2)); //가장자리의 이웃세포까지 만들기
+	for (int i = 0; i < row + 2; i++) {
+		working_cell_arr[i] = (int *)malloc(sizeof(int) * (col + 2));
+	}
+
+	new_cell_arr = (int **)malloc(sizeof(int *) * row); //새롭게 생성되는 다음 세대의 파일 내용
+	for (int i = 0; i < row; i++) {
+		new_cell_arr[i] = (int *)malloc(sizeof(int) * col);
+	}
+
+	for (int i = 0; i < row; i++) {
+		for (int j = 0; j < col; j++) {
+			new_cell_arr[i][j] = 0; //인자로 전달받은 배열의 값 이 곳에 할당
+		}
+	}
+
+	for (int i = 0; i < row + 2; i++) {
+		for (int j = 0; j < col + 2; j++) {
+			working_cell_arr[i][j] = cell_arr[i][j];
+		}
+	}
+	
+	/*for (int i = 0; i < row + 2; i++) {
+		for (int j = 0; j < col + 2; j++) {
+			printf("%d ", working_cell_arr[i][j]);
+		}
+		printf("\n");
+	}*/
+
+	for (int i = 0; i < thread_input; i++) {
+		if ((remainder_row % (thread_input - i)) != 0) {
+			rows_per_thread = (remainder_row / (thread_input - i)) + 1;
+			printf("step %d case A - rows_per_thread : %d\n", i, rows_per_thread);
+		}
+
+		else if ((remainder_row % (thread_input - i)) == 0) {
+			rows_per_thread = remainder_row / (thread_input - i);
+			printf("step %d case B - rows_per_thread : %d\n", i, rows_per_thread);
+		}
+
+	}
+
+
 	return;
+}
+
+void *tid_print(void *arg) {
+
 }
 
 /*================================ << 부수적 함수 구현부 >> ================================*/

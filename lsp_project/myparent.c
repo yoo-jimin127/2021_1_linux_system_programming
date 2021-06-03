@@ -23,7 +23,7 @@ int main (int argc, char **argv) {
 			exit(1);
 		}
 		else {
-			printf("I'm child <%d
+			printf("I'm child <%d> \n");
 		}
 	}
 
