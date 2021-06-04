@@ -39,13 +39,12 @@ int main (int argc, char* argv[]) {
 
 	clock_t start, finish;
 	double duration;
-
-	strcpy(input_filename, argv[1]); //입력받은 argv[1](input.matrix)파일명을 복사
 	
-	if(argv[2] == NULL) {
+	if(argv[1] == NULL) {
 		fprintf(stderr, "input.matrix 파일명을 입력하세요.\n");
 		exit(1);
 	}
+	strcpy(input_filename, argv[1]); //입력받은 argv[1](input.matrix)파일명을 복사
 
 	start = clock();
 	if ((fp = fopen(input_filename, "r+")) == NULL) { //파일 내용 읽기 위해 읽기모드로 열기
@@ -313,6 +312,7 @@ void process_parallel_processing(int** cell_arr, int input_gene, int child_proce
 	}*/
 
 
+	//-----------------------------게임 진행-------------------------
 	//자식 프로세스 별로 담당해야하는 줄 수 배분 작업
 	//	for (gene_cnt = 0; gene_cnt < input_gene - 1; gene_cnt++) {
 	for (int i = 0; i < child_process_input; i++) {
@@ -335,33 +335,21 @@ void process_parallel_processing(int** cell_arr, int input_gene, int child_proce
 			for (int j = row_cnt + 1; j <= row_cnt + rows_per_child; j++) { //실제 데이터가 저장된 1행부터 시작
 				for (int k = 1; k <= col; k++) { //실제 데이터가 저장된 1열부터 시작
 					alive_cell_cnt = get_alive_cell(working_cell_arr, j, k);
-					printf("alive_cell_cnt[%d][%d] : %d\n", j, k, alive_cell_cnt);
+					//printf("alive_cell_cnt[%d][%d] : %d\n", j, k, alive_cell_cnt);
 					if ((working_cell_arr[j][k] == 1) && (3 <= alive_cell_cnt) && (alive_cell_cnt <= 6)) {
 						new_cell_arr[j-1][k-1] = 1;
 					}
 					else if ((working_cell_arr[j][k] == 0) && (alive_cell_cnt == 4)) {
-						new_cell_arr[j-1][k-1] = 1;
+						new_cell_arr[j-1][k-1] = 1; //각 child프로세스가 맡은 행의 내용을 new_cell_arr에 업데이트 완료
 					}
 				}
 			}
-			for (gene_cnt = 0; gene_cnt < input_gene; gene_cnt++) {
-				sprintf(new_filename, "gen_%d.matrix", gene_cnt + 1);
-				if ((new_fp = fopen(new_filename, "a+")) == NULL) {
-					fprintf(stderr, "new_fp fopen() error <mode : [a+]> in process_parellel_processing.\n");
-					exit(1);
+
+			for (int a = 1; i <= row_cnt + rows_per_child; a++) {
+				for (int b = 1; b <= col; b++) {
+					printf("%d ", new_cell_arr[a - 1][b - 1]);
 				}
-				memset(tmp_cell, 0, sizeof(char) * 10);
-				for (int l = row_cnt + 1; l <= row_cnt + rows_per_child; l++) {
-					for (int m = 1; m <= col; m++) {
-						sprintf(tmp_cell, "%d", working_cell_arr[l][m]);
-						fwrite(tmp_cell, 1, sizeof(char), new_fp);
-						fwrite(space_bar, 1, sizeof(char), new_fp);
-						if (col == m + 1) {
-							fwrite(enter, 1, sizeof(char), new_fp);
-						}
-					}
-				}
-				fclose(new_fp);
+				printf("\n");
 			}
 		}
 		remainder_row -= rows_per_child;
@@ -372,6 +360,28 @@ void process_parallel_processing(int** cell_arr, int input_gene, int child_proce
 		}
 		row_cnt += rows_per_child;
 		printf("row_cnt : %d\n", row_cnt);
+/*
+		for (gene_cnt = 0; gene_cnt < input_gene; gene_cnt++) {
+			sprintf(new_filename, "gen_%d.matrix", gene_cnt + 1);
+			if ((new_fp = fopen(new_filename, "a+")) == NULL) {
+				fprintf(stderr, "new_fp fopen() error <mode : [a+]> in process_parellel_processing.\n");
+				exit(1);
+			}
+			memset(tmp_cell, 0, sizeof(char) * 10);
+			for (int l = row_cnt + 1; l <= row_cnt + rows_per_child; l++) {
+				for (int m = 1; m <= col; m++) {
+					working_cell_arr[l+1][m+1] = new_cell_arr[l][m];
+					//printf("new_cell_arr[%d][%d] : %d\n", l, m, new_cell_arr[i][m]);
+					sprintf(tmp_cell, "%d", new_cell_arr[l][m]);
+					fwrite(tmp_cell, 1, sizeof(char), new_fp);
+					fwrite(space_bar, 1, sizeof(char), new_fp);
+					if (col == m + 1) {
+						fwrite(enter, 1, sizeof(char), new_fp);
+					}
+				}
+			}
+			fclose(new_fp);
+		} */
 	}
 
 	return;
