@@ -13,9 +13,8 @@ int main (int argc, char **argv) {
 		timelimit = atoi(argv[1]);
 	}
 
-
 	if (timelimit != 0) {
-		while(timelimit) {
+		while(timelimit){
 			if ((pid = fork()) < 0) {
 				fprintf(stderr, "fork() error\n");
 				exit(1);
@@ -28,10 +27,9 @@ int main (int argc, char **argv) {
 					fprintf(stderr, "failed the call of execl.\n");
 					exit(1);
 				}
+				sleep(1);
+				timelimit--;
 			}
-
-			sleep(1);
-			timelimit--;
 
 			if (timelimit <= 5) {
 				printf("printdate 종료 카운트다운 %d초 전\n", timelimit);
@@ -58,6 +56,8 @@ int main (int argc, char **argv) {
 			sleep(1);
 		}
 	}
+
+
 
 	return 0;
 }
