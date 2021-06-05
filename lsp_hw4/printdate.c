@@ -13,7 +13,6 @@ int main (int argc, char **argv) {
 	pid_t pid; //프로세스 아이디
 	int status = 0; //wait를 위한 변수
 
-
 	if (argv[1] == NULL) {
 		timelimit = 0;
 	} //timelimit 인자 없으면 0으로 설정
@@ -52,12 +51,9 @@ int main (int argc, char **argv) {
 					exit(1);
 				}
 			}
-
 			sleep(1); //1초 지연
 		}
 	}
-
-
 	return 0;
 }
 
