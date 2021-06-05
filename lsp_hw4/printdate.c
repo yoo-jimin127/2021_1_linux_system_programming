@@ -63,9 +63,22 @@ int main (int argc, char **argv) {
 
 void sigint_handler (int signo)  {
 	int count_down = 5; //5초간의 카운트다운 진행
+	pid_t pid;
+	int status;
+
 	printf("\n");
 	for (int i = count_down; i > 0; i--) { 
 		printf("-----printdate 프로그램 종료 %d초 전-----\n", i);
+		if ((pid = fork()) == 0) { //시그널 핸들러 내에서 프로세스를 생성해 카운트다운 5초간 date를 출력
+			execl("/bin/date", "/bin/date", NULL, NULL);
+		}
+
+		else if (pid > 0) {
+			if (wait(&status) != pid) { //자식 프로세스는 종료를 기다림
+				fprintf(stderr, "wait() error in sigint_handler.\n");
+				exit(1);
+			}
+		}
 		sleep(1); //1초 주기로 5초간의 카운트다운 진행
 	}
 	signal(SIGINT, handler_return_val); //다시 SIGINT의 핸들러 원상복구
