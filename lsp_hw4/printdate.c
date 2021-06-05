@@ -78,6 +78,10 @@ void sigint_handler (int signo)  {
 		sleep(1); //1초 주기로 5초간의 카운트다운 진행
 	}
 	signal(SIGINT, handler_return_val); //다시 SIGINT의 핸들러 원상복구
-	exit(0); //프로그램 종료
+	
+	if (raise(SIGINT) != 0) { //프로그램 종료
+		fprintf(stderr,"raise() error\n");
+		exit(1);
+	}
 	return;
 }
