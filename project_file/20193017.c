@@ -13,17 +13,27 @@
 #include <sys/resource.h>
 
 #define MAX_SIZE 1024
+#define THREAD_MAX_NUM 1000
+
+int **cell_arr;
+
+struct thread_data {
+	int start_row_num; //스레드가 담당하기 시작하는 행의 번호
+	int rows_per_thread; //스레드가 담당하는 행의 개수
+	int gene_num; //진행해야 할 세대 수
+};
 
 /* ========================== << 함수 정의부 >> ========================*/
 void sequential_processing(int** cell_arr, int input_gene); //순차처리
 void process_parallel_processing(int** cell_arr, int input_gene, int child_process_input); //프로세스 병렬처리
 void thread_parellel_processing(int** cell_arr, int input_gene, int thread_input); //스레드 병렬처리
+void *thread_function(void *arg);
 int get_row_cnt(char* input_filename);
 int get_col_cnt(char* input_filename);
 int get_alive_cell(int **cell_arr, int row_cnt, int col_cnt);
-void *thread_function(void *arg);
 
 long row = 0, col = 0; //매트릭스의 행, 열 저장 변수
+
 /* =========================== << main func >> ===========================*/
 int main (int argc, char* argv[]) {
 	FILE* fp = NULL; //파일포인터
@@ -33,9 +43,7 @@ int main (int argc, char* argv[]) {
 	int child_process_input = 0; //(3)번 프로세스 병렬처리 메뉴 선택 시 입력될 child process 개수입력
 	int thread_input = 0; //(4)번 스레드 병렬처리 메뉴 선택 시 입력될 thread 개수 입력
 	//long long filesize = 0; //파일 크기 저장 변수
-	int **cell_arr; //세포 매트릭스를 저장할 2차원 정수형 배열
 	char *input_buf; //파일의 내용을 받아올 버퍼
-	//char *tmpbuf; //2차원 배열에 저장하기 위한 임시 버퍼
 	long row_cnt = 0, col_cnt = 0; //행, 열 카운트 변수
 
 	clock_t start, finish;
@@ -86,13 +94,6 @@ int main (int argc, char* argv[]) {
 		}
 		row_cnt++;
 	}
-
-	/*for (int i = 1; i < row + 1; i++) { //온전한 input.matrix의 내용
-	  for (int j = 1; j < col + 1; j++) {
-	  printf("%d#", cell_arr[i][j]);
-	  }
-	  printf("\n");
-	  }*/	
 
 	//-----------------------메뉴 출력 후 해당 기능으로 인자를 넘기는 작업---------------------
 	while(1) {
@@ -157,8 +158,7 @@ int main (int argc, char* argv[]) {
 
 /*================================ << 순차처리 기능 구현부 >> ================================*/
 void sequential_processing(int** cell_arr, int input_gene) {
-	//printf("순차처리 기능이 실행됩니다.\n");
-	printf("input_gene : %d row : %ld col : %ld\n", input_gene, row, col);
+	printf("순차처리 기능이 실행됩니다.\n");
 
 	char *new_filename = (char *)malloc(sizeof(char) * MAX_SIZE);
 	FILE* new_fp = NULL; //다음 세대 매트릭스 파일 생성을 위한 파일포인터
@@ -191,13 +191,6 @@ void sequential_processing(int** cell_arr, int input_gene) {
 			working_cell_arr[i][j] = cell_arr[i][j]; //인자로 전달받은 배열의 값 이 곳에 할당
 		}
 	}
-
-	/*for (int i = 0; i < row + 2; i++) {
-	  for (int j = 0; j < col + 2; j++) {
-	  printf("%d ", working_cell_arr[i][j]);
-	  }
-	  printf("\n");
-	  } */
 
 	//-----------------------------게임 진행-------------------------
 	for (int i = 0; i < input_gene - 1; i++) { //입력받은 세대만큼 반복 진행
@@ -304,7 +297,7 @@ void process_parallel_processing(int** cell_arr, int input_gene, int child_proce
 			new_cell_arr[i][j] = 0;
 		}
 	}
-		
+
 	for (int i = 0; i < row + 2; i++) {
 		for (int j = 0; j < col + 2; j++) {
 			working_cell_arr[i][j] = cell_arr[i][j]; //인자로 전달받은 값 이 곳에 할당
@@ -321,7 +314,8 @@ void process_parallel_processing(int** cell_arr, int input_gene, int child_proce
 
 	//-----------------------------게임 진행-------------------------
 	//자식 프로세스 별로 담당해야하는 줄 수 배분 작업
-	for (gene_cnt = 0; gene_cnt < input_gene; gene_cnt++) {	
+	for (gene_cnt = 0; gene_cnt < input_gene; gene_cnt++) {
+		printf("------------%d세대------------\n", gene_cnt + 1); 
 		if (gene_cnt < input_gene -1) {
 			sprintf(new_filename, "gen_%d.matrix", gene_cnt + 1);
 			//printf("%s\n", new_filename);
@@ -330,7 +324,7 @@ void process_parallel_processing(int** cell_arr, int input_gene, int child_proce
 				exit(1);
 			}
 		}
-		
+
 		else if (gene_cnt == input_gene -1) {
 			sprintf(new_filename, "output.matrix");
 			if ((new_fp = fopen(new_filename, "a+")) == NULL) {
@@ -339,26 +333,24 @@ void process_parallel_processing(int** cell_arr, int input_gene, int child_proce
 			}
 		}
 
-	/*	if (gene_cnt >= 1) {
+		/*
+		if (gene_cnt >= 1) {
 			for (int i = 0; i < row + 2; i++) {
 				for (int j = 0; j < col + 2; j++) {
 					working_cell_arr[i][j] = tmp_cell_arr[i][j]; //인자로 전달받은 값 이 곳에 할당
-				//	printf("%d ", working_cell_arr[i][j]);
+					//	printf("%d ", working_cell_arr[i][j]);
 				}
-			//	printf("\n");
+			//		printf("\n");
 			}
-		} */
+		}*/ 
 
-		printf("------gene_cnt : %d------\n", gene_cnt + 1);
 		for (int i = 0; i < child_process_input; i++) {
 			if ((remainder_row % (child_process_input - i)) != 0) { //자식 프로세스의 개수가 input.matrix의 개수로 나누어떨어지지 않는 경우
 				rows_per_child = (remainder_row / (child_process_input - i)) + 1; //1씩 더해 균등 배분
-			//	printf("step %d case A - rows_per_child : %d\n", i, rows_per_child);
 			}
 
 			else if ((remainder_row % (child_process_input - i)) == 0) { //자식 프로세스의 개수가 input.matrix의 개수로 나누어떨어지는 경우
 				rows_per_child = remainder_row / (child_process_input - i);
-			//	printf("step %d case B - remainder_row : %d ,rows_per_child : %d\n", i, remainder_row, rows_per_child);
 			}
 
 			if ((pids[i] = fork()) < 0) { //자식 프로세스 생성
@@ -366,7 +358,7 @@ void process_parallel_processing(int** cell_arr, int input_gene, int child_proce
 				exit(1);
 			}
 			else if (pids[i] == 0) { //자식 프로세스
-			//	printf("pids[%d] : %d\n", i, getpid());
+				printf("pids[%d] : %d\n", i, getpid());
 				for (int j = row_cnt + 1; j <= row_cnt + rows_per_child; j++) { //실제 데이터가 저장된 1행부터 시작
 					for (int k = 1; k <= col; k++) { //실제 데이터가 저장된 1열부터 시작
 						alive_cell_cnt = get_alive_cell(working_cell_arr, j, k);
@@ -383,16 +375,13 @@ void process_parallel_processing(int** cell_arr, int input_gene, int child_proce
 				memset(tmp_cell, 0, sizeof(char) * 10);
 				for (int c = row_cnt + 1; c <= row_cnt + rows_per_child; c++) {
 					for (int d = 1; d <= col; d++) {
-				//		tmp_cell_arr[c][d] = new_cell_arr[c-1][d-1];
+						tmp_cell_arr[c][d] = new_cell_arr[c-1][d-1];
 					//	printf("%d ", tmp_cell_arr[c][d]);
 						sprintf(tmp_cell, "%d ", new_cell_arr[c-1][d-1]);
-					//	printf("%s", tmp_cell);
+						//	printf("%s", tmp_cell);
 						fseek(new_fp, 0, SEEK_CUR);
 						fwrite(tmp_cell, 1, strlen(tmp_cell), new_fp);
-					//	fwrite(space_bar, 1, sizeof(char), new_fp);
-					//	if (col == d + 1) {
-					//		fwrite(enter, 1, sizeof(char), new_fp);
-					//	}
+						//	fwrite(space_bar, 1, sizeof(char), new_fp);
 					}
 				//	printf("\n");
 					fwrite(enter, 1, sizeof(char), new_fp);
@@ -400,39 +389,68 @@ void process_parallel_processing(int** cell_arr, int input_gene, int child_proce
 
 				exit(0);
 			} //pids[i] == 0 분기문 작업 끝
-			
+
 			else if (pids[i] > 0) {
 				if ((wait(&status)) != pids[i]) {
 					fprintf(stderr, "pids[%d] wait() error.\n", i);
 					exit(1);
 				}
 			}
+
 			remainder_row -= rows_per_child;
-		//	printf("remainder_row : %d at gene_cnt : %d\n", remainder_row, gene_cnt + 1);
 			row_cnt += rows_per_child;
-		//	printf("row_cnt : %d at gene_cnt : %d\n", row_cnt, gene_cnt + 1);
 
 		}//child_process_input만큼의 반복문
 		remainder_row = row;
 		row_cnt = 0;
 
-	/*	for (int i = 0; i < row + 2; i++) {
-			for (int j = 0; j < col + 2; j++) {
-				printf("%d ", cell_arr[i][j]);
-			}
-			printf("\n");
-		} */
-		
 		fclose(new_fp);
 	}//input_gene만큼의 반복문
 
 	return;
 }
 
-/*================================ << thread 병렬처리 기능 구현부 >> ================================*/
+/*================================ << thread 병렬처리 기능 구현부 >> ================================*/ 
+struct thread_data thread_data_arr[THREAD_MAX_NUM]; //스레드 데이터가 담길 구조체 선언
+
 void thread_parellel_processing(int** cell_arr, int input_gene, int thread_input) {
 	printf("스레드 병렬처리 기능이 실행됩니다.\n");
-	//printf("%s %d %d\n", input_filename, input_gene, thread_num_input);
+//	printf("%d %d\n", input_gene, thread_input);
+	int row_cnt = 0;
+	int remainder_row = row;
+	int rows_per_thread_res = 0;
+	int gene_cnt = 0;
+	pthread_t tids[thread_input];
+
+	for (int i = 0; i < thread_input; i++) {
+		if ((remainder_row % (thread_input - i)) != 0) {
+			thread_data_arr[i].start_row_num = row_cnt;
+			rows_per_thread_res = (remainder_row / (thread_input - i)) + 1;
+			thread_data_arr[i].rows_per_thread = rows_per_thread_res;
+			thread_data_arr[i].gene_num = input_gene;
+			printf("case A - thread %d : row_cnt : %d rows_per_thread_res : %d, input_gene : %d\n", i, row_cnt, rows_per_thread_res, input_gene);
+		}
+
+		else if ((remainder_row % (thread_input -i)) == 0) {
+			thread_data_arr[i].start_row_num = row_cnt;
+			rows_per_thread_res = (remainder_row / (thread_input - i));
+			thread_data_arr[i].rows_per_thread = rows_per_thread_res;
+			thread_data_arr[i].gene_num = input_gene;
+			printf("case B - thread %d : row_cnt : %d rows_per_thread_res : %d, input_gene : %d\n", i, row_cnt, rows_per_thread_res, input_gene);
+		}
+
+		if (pthread_create(&tids[i], NULL, thread_function, (void *)&thread_data_arr[i]) != 0) {
+			fprintf(stderr, "tids[%d] : pthread_create() error\n", i);
+			exit(1);
+		}
+		remainder_row -= rows_per_thread_res;	
+		row_cnt += rows_per_thread_res;
+	}
+
+	return;
+}
+
+void *thread_function(void *arg) {
 	char *new_filename = (char *)malloc(sizeof(char) * MAX_SIZE);
 	FILE *new_fp = NULL; //다음 세대 매트릭스 파일 생성을 위한 파일포인터
 	FILE *final_fp = NULL; //output.matrix 파일 생성을 위한 파일포인터
@@ -443,12 +461,20 @@ void thread_parellel_processing(int** cell_arr, int input_gene, int thread_input
 	char *space_bar = " "; //공백문자
 	char *enter = "\n"; //개행문자
 
-	pthread_t tids[thread_input]; //스레드 아이디
-	pid_t pids[thread_input];
+	//pthread_t tids[thread_input]; //스레드 아이디
+	//pid_t pids[thread_input];
 	int row_cnt = 0;
 	int remainder_row = row;
 	int rows_per_thread = 0;
-	int gene_cnt = 0;
+	int input_gene; //스레드 병렬처리 함수에서 입력받은 진행할 세대 수
+	int gene_cnt = 0; //세대 수 카운트 변수
+
+	struct thread_data *thread_data_array;
+	thread_data_array = (struct thread_data *)arg;
+	input_gene = thread_data_array -> gene_num;
+	row_cnt = thread_data_array -> start_row_num;
+	rows_per_thread = thread_data_array -> rows_per_thread;
+	printf("row_cnt : %d, rows_per_thread : %d, input_gene : %d\n", row_cnt, rows_per_thread, input_gene);
 
 	working_cell_arr = (int **)malloc(sizeof(int *) * (row + 2)); //가장자리의 이웃세포까지 만들기
 	for (int i = 0; i < row + 2; i++) {
@@ -472,31 +498,48 @@ void thread_parellel_processing(int** cell_arr, int input_gene, int thread_input
 		}
 	}
 
-	/*for (int i = 0; i < row + 2; i++) {
-	  for (int j = 0; j < col + 2; j++) {
-	  printf("%d ", working_cell_arr[i][j]);
-	  }
-	  printf("\n");
-	  }*/
-
-	for (int i = 0; i < thread_input; i++) {
-		if ((remainder_row % (thread_input - i)) != 0) {
-			rows_per_thread = (remainder_row / (thread_input - i)) + 1;
-			printf("step %d case A - rows_per_thread : %d\n", i, rows_per_thread);
+	//세대 별 세포 게임 진행
+	for (gene_cnt = 0; gene_cnt < input_gene; gene_cnt++) {
+		if (gene_cnt < input_gene -1) {
+			sprintf(new_filename, "gen_%d.matrix", gene_cnt + 1);
+			if ((new_fp = fopen(new_filename, "a+")) == NULL) {
+				fprintf(stderr, "new_fp fopen() error <mode : [w+]> in thread_parellel_processing.\n");
+				exit(1);
+			}
 		}
 
-		else if ((remainder_row % (thread_input - i)) == 0) {
-			rows_per_thread = remainder_row / (thread_input - i);
-			printf("step %d case B - rows_per_thread : %d\n", i, rows_per_thread);
+		else if (gene_cnt == input_gene -1) {
+			sprintf(new_filename, "output.matrix");
+			if ((new_fp = fopen(new_filename, "a+")) == NULL) {
+				fprintf(stderr, "new_fp fopen() error <mode : [w+]> in thread_parellel_processing.\n");
+				exit(1);
+			}
+		}
+		
+		for (int i = row_cnt + 1; i <= row_cnt + rows_per_thread; i++) {
+			for (int j = 1; j <= col; j++) {
+				alive_cell_cnt = get_alive_cell(working_cell_arr, i, j);
+				if ((working_cell_arr[i][j] == 1) && (3 <= alive_cell_cnt) && (alive_cell_cnt <= 6)) {
+					new_cell_arr[i-1][j-1] = 1;
+				}
+
+				else if ((working_cell_arr[i][j] == 0) && (alive_cell_cnt == 4)) {
+					new_cell_arr[i-1][j-1] = 1;
+				}
+			}
+		}
+		memset(tmp_cell, 0, sizeof(char) * 10);
+		for (int k = row_cnt + 1; k <= row_cnt + rows_per_thread; k++) {
+			for (int l = 1; l <= col; l++) {
+				sprintf(tmp_cell, "%d ", new_cell_arr[k-1][l-1]);
+				fseek(new_fp, 0, SEEK_CUR);
+				fwrite(tmp_cell, 1, strlen(tmp_cell), new_fp);
+			}
+			fwrite(enter, 1, sizeof(char), new_fp);
 		}
 
-	}
+	} //gene_cnt 반복문 범위
 
-
-	return;
-}
-
-void *tid_print(void *arg) {
 
 }
 
@@ -568,4 +611,3 @@ int get_alive_cell(int **cell_arr, int row_num, int col_num) {
 
 	return alive_cell_cnt;
 }
-
