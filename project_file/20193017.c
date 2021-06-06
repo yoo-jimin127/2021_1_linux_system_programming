@@ -428,7 +428,7 @@ void thread_parellel_processing(int** cell_arr, int input_gene, int thread_input
 			rows_per_thread_res = (remainder_row / (thread_input - i)) + 1;
 			thread_data_arr[i].rows_per_thread = rows_per_thread_res;
 			thread_data_arr[i].gene_num = input_gene;
-			printf("case A - thread %d : row_cnt : %d rows_per_thread_res : %d, input_gene : %d\n", i, row_cnt, rows_per_thread_res, input_gene);
+			//printf("case A - thread %d : row_cnt : %d rows_per_thread_res : %d, input_gene : %d\n", i, row_cnt, rows_per_thread_res, input_gene);
 		}
 
 		else if ((remainder_row % (thread_input -i)) == 0) {
@@ -436,7 +436,7 @@ void thread_parellel_processing(int** cell_arr, int input_gene, int thread_input
 			rows_per_thread_res = (remainder_row / (thread_input - i));
 			thread_data_arr[i].rows_per_thread = rows_per_thread_res;
 			thread_data_arr[i].gene_num = input_gene;
-			printf("case B - thread %d : row_cnt : %d rows_per_thread_res : %d, input_gene : %d\n", i, row_cnt, rows_per_thread_res, input_gene);
+			//printf("case B - thread %d : row_cnt : %d rows_per_thread_res : %d, input_gene : %d\n", i, row_cnt, rows_per_thread_res, input_gene);
 		}
 
 		if (pthread_create(&tids[i], NULL, thread_function, (void *)&thread_data_arr[i]) != 0) {
