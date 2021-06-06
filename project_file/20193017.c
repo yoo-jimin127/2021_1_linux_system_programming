@@ -318,7 +318,7 @@ void process_parallel_processing(int** cell_arr, int input_gene, int child_proce
 		if (gene_cnt < input_gene -1) {
 			sprintf(new_filename, "gen_%d.matrix", gene_cnt + 1);
 			printf("%s\n", new_filename);
-			if ((new_fp, fopen(new_filename, "a+")) == NULL) {
+			if ((new_fp = fopen(new_filename, "a+")) == NULL) {
 				fprintf(stderr, "new_fp fopen() error <mode : [a+]> in process_parellel_processing.\n");
 				exit(1);
 			}
@@ -329,7 +329,7 @@ void process_parallel_processing(int** cell_arr, int input_gene, int child_proce
 		
 		else if (gene_cnt == input_gene -1) {
 			sprintf(new_filename, "output.matrix");
-			if ((new_fp, fopen(new_filename, "a+")) == NULL) {
+			if ((new_fp = fopen(new_filename, "a+")) == NULL) {
 				fprintf(stderr, "new_fp fopen() error <mode : [a+]> in process_parellel_processing.\n");
 				exit(1);
 			}
@@ -375,15 +375,15 @@ void process_parallel_processing(int** cell_arr, int input_gene, int child_proce
 				for (int c = row_cnt + 1; c <= row_cnt + rows_per_child; c++) {
 					for (int d = 1; d <= col; d++) {
 						sprintf(tmp_cell, "%d ", new_cell_arr[c-1][d-1]);
-						printf("%s", tmp_cell);
+					//	printf("%s", tmp_cell);
 						fseek(new_fp, 0, SEEK_CUR);
-						fwrite(tmp_cell, 1, sizeof(char), new_fp);
+						fwrite(tmp_cell, 1, strlen(tmp_cell), new_fp);
 					//	fwrite(space_bar, 1, sizeof(char), new_fp);
 					//	if (col == d + 1) {
 					//		fwrite(enter, 1, sizeof(char), new_fp);
 					//	}
 					}
-					printf("\n");
+					//printf("\n");
 					fwrite(enter, 1, sizeof(char), new_fp);
 				}
 
