@@ -510,6 +510,7 @@ void *thread_function(void *arg) {
 		memset(tmp_cell, 0, sizeof(char) * 10);
 		for (int k = row_cnt + 1; k <= row_cnt + rows_per_thread; k++) {
 			for (int l = 1; l <= col; l++) {
+				working_cell_arr[k][l] = new_cell_arr[k-1][l-1];
 				sprintf(tmp_cell, "%d ", new_cell_arr[k-1][l-1]);
 				fseek(new_fp, 0, SEEK_CUR);
 				fwrite(tmp_cell, 1, strlen(tmp_cell), new_fp);
