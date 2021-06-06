@@ -298,11 +298,7 @@ void process_parallel_processing(int** cell_arr, int input_gene, int child_proce
 		}
 	}
 
-	for (int i = 0; i < row + 2; i++) {
-		for (int j = 0; j < col + 2; j++) {
-			working_cell_arr[i][j] = cell_arr[i][j]; //인자로 전달받은 값 이 곳에 할당
-		}
-	}
+
 
 	/*for (int i = 0; i < row + 2; i++) { //8 * 7 배열 기준으로 working_cell_arr는 [10][9], 실제 데이터는 [1][1] ~ [8][7]에 들어있음 
 	  for (int j = 0; j < col + 2; j++) {
@@ -322,9 +318,6 @@ void process_parallel_processing(int** cell_arr, int input_gene, int child_proce
 				fprintf(stderr, "new_fp fopen() error <mode : [a+]> in process_parellel_processing.\n");
 				exit(1);
 			}
-			printf("파일열림\n");
-		//	fseek(new_fp, 0, SEEK_SET);
-			printf("파일포인터\n");
 		}
 		
 		else if (gene_cnt == input_gene -1) {
@@ -334,16 +327,22 @@ void process_parallel_processing(int** cell_arr, int input_gene, int child_proce
 				exit(1);
 			}
 		}
+
+		for (int i = 0; i < row + 2; i++) {
+			for (int j = 0; j < col + 2; j++) {
+				working_cell_arr[i][j] = cell_arr[i][j]; //인자로 전달받은 값 이 곳에 할당
+			}
+		}
 		printf("------gene_cnt : %d------\n", gene_cnt + 1);
 		for (int i = 0; i < child_process_input; i++) {
 			if ((remainder_row % (child_process_input - i)) != 0) { //자식 프로세스의 개수가 input.matrix의 개수로 나누어떨어지지 않는 경우
 				rows_per_child = (remainder_row / (child_process_input - i)) + 1; //1씩 더해 균등 배분
-				printf("step %d case A - rows_per_child : %d\n", i, rows_per_child);
+			//	printf("step %d case A - rows_per_child : %d\n", i, rows_per_child);
 			}
 
 			else if ((remainder_row % (child_process_input - i)) == 0) { //자식 프로세스의 개수가 input.matrix의 개수로 나누어떨어지는 경우
 				rows_per_child = remainder_row / (child_process_input - i);
-				printf("step %d case B - remainder_row : %d ,rows_per_child : %d\n", i, remainder_row, rows_per_child);
+			//	printf("step %d case B - remainder_row : %d ,rows_per_child : %d\n", i, remainder_row, rows_per_child);
 			}
 
 			if ((pids[i] = fork()) < 0) { //자식 프로세스 생성
@@ -351,7 +350,7 @@ void process_parallel_processing(int** cell_arr, int input_gene, int child_proce
 				exit(1);
 			}
 			else if (pids[i] == 0) { //자식 프로세스
-				printf("pids[%d] : %d\n", i, getpid());
+			//	printf("pids[%d] : %d\n", i, getpid());
 				for (int j = row_cnt + 1; j <= row_cnt + rows_per_child; j++) { //실제 데이터가 저장된 1행부터 시작
 					for (int k = 1; k <= col; k++) { //실제 데이터가 저장된 1열부터 시작
 						alive_cell_cnt = get_alive_cell(working_cell_arr, j, k);
@@ -364,16 +363,11 @@ void process_parallel_processing(int** cell_arr, int input_gene, int child_proce
 					}
 				}
 
-				/*for (int w = row_cnt + 1; w <= row_cnt + rows_per_child; w++) {
-					for (int z = 1; z <= col; z++) {
-						printf("%d ", new_cell_arr[w-1][z-1]);
-					}
-					printf("\n");
-				}*/
 				//배열에 값 넣는 작업
 				memset(tmp_cell, 0, sizeof(char) * 10);
 				for (int c = row_cnt + 1; c <= row_cnt + rows_per_child; c++) {
 					for (int d = 1; d <= col; d++) {
+						cell_arr[c][d] = new_cell_arr[c-1][d-1];
 						sprintf(tmp_cell, "%d ", new_cell_arr[c-1][d-1]);
 					//	printf("%s", tmp_cell);
 						fseek(new_fp, 0, SEEK_CUR);
@@ -397,15 +391,15 @@ void process_parallel_processing(int** cell_arr, int input_gene, int child_proce
 				}
 			}
 			remainder_row -= rows_per_child;
-			printf("remainder_row : %d at gene_cnt : %d\n", remainder_row, gene_cnt + 1);
+		//	printf("remainder_row : %d at gene_cnt : %d\n", remainder_row, gene_cnt + 1);
 			row_cnt += rows_per_child;
-			printf("row_cnt : %d at gene_cnt : %d\n", row_cnt, gene_cnt + 1);
+		//	printf("row_cnt : %d at gene_cnt : %d\n", row_cnt, gene_cnt + 1);
 
 		}//child_process_input만큼의 반복문
 		remainder_row = row;
 		row_cnt = 0;
-	//	fclose(new_fp);
-		printf("작업 끝\n");
+		
+		fclose(new_fp);
 	}//input_gene만큼의 반복문
 
 	return;
