@@ -336,8 +336,8 @@ void process_parallel_processing(int** cell_arr, int input_gene, int child_proce
 				rows_per_child = remainder_row / (child_process_input - i);
 			}
 
-			if ((pids[i] = fork()) < 0) { //자식 프로세스 생성
-				fprintf(stderr, "child_process[%d] : fork() error\n", i);
+			if ((pids[i] = vfork()) < 0) { //자식 프로세스 생성
+				fprintf(stderr, "child_process[%d] : vfork() error\n", i);
 				exit(1);
 			}
 			else if (pids[i] == 0) { //자식 프로세스
@@ -358,7 +358,7 @@ void process_parallel_processing(int** cell_arr, int input_gene, int child_proce
 				memset(tmp_cell, 0, sizeof(char) * 10);
 				for (int c = row_cnt + 1; c <= row_cnt + rows_per_child; c++) {
 					for (int d = 1; d <= col; d++) {
-						tmp_cell_arr[c][d] = new_cell_arr[c-1][d-1];
+						working_cell_arr[c][d] = new_cell_arr[c-1][d-1];
 						sprintf(tmp_cell, "%d ", new_cell_arr[c-1][d-1]);
 						fseek(new_fp, 0, SEEK_CUR);
 						fwrite(tmp_cell, 1, strlen(tmp_cell), new_fp);
